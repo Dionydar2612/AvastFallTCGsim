@@ -125,6 +125,11 @@ h1,h2,h3{font-family:var(--f-disp);margin:0;text-wrap:balance}
 .elems{display:flex;gap:4px;flex-wrap:wrap;min-height:30px;align-items:center;justify-content:center}
 .el{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);background:var(--panel);transition:transform .2s,opacity .2s}
 .el.rest{opacity:.4;transform:rotate(90deg) scale(.86)}
+.eli{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:600 12px/1 var(--f-disp);color:var(--ink2)}
+.eli b{color:var(--ink)}
+.eld,.ela{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--line);border-radius:99px;padding:2px 8px;background:var(--panel)}
+.ela .elems{min-height:0;gap:3px}
+.ela .el{width:20px;height:20px;border-width:1.5px}
 .eldeck{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;background:var(--panel);font:700 14px/1 var(--f-disp);position:relative}
 .eldeck small{position:absolute;bottom:-6px;font-size:9px;color:var(--coral)}
 .handrow{display:flex;justify-content:center;padding:14px 0 4px;min-height:calc(var(--cwb)*1.18*1.418 + 26px);overflow-x:auto;overflow-y:visible}
@@ -197,6 +202,25 @@ h1,h2,h3{font-family:var(--f-disp);margin:0;text-wrap:balance}
 .step b{min-width:20px;text-align:center;font-family:var(--f-disp)}
 .legend{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;align-items:center}
 .sr{position:absolute;left:-9999px}
+
+@media (min-width:1051px){
+  .fit{--cwb:clamp(30px,min(5.4vw,82px,calc((100vh - 400px)/7.9),calc((100vw - 726px)/7.2)),82px)}
+  .fit,.fit body{overflow:hidden}
+  .fit .game{gap:10px}
+  .fit .side{padding:4px 8px 6px;gap:4px;border-radius:12px}
+  .fit .side .head{font-size:13px;gap:6px;min-height:20px}
+  .fit .head .hand-opp{margin-left:auto}
+  .fit .hand-opp .card{--cw:calc(var(--cwb)*.36);margin-left:calc(var(--cwb)*-.2)}
+  .fit .zlab{margin-bottom:1px;font-size:10.5px}
+  .fit .azone{padding:3px 8px 5px}
+  .fit .row.mid{gap:8px;flex-wrap:nowrap;justify-content:space-evenly}
+  .fit .row.mid>.zone[style]{min-width:100px}
+  .fit .bar{margin:5px 0;padding:5px 10px}
+  .fit .handrow{padding:8px 0 0;min-height:0;overflow:visible}
+  .fit .panel{top:0;max-height:calc(100vh - 56px)}
+  .fit .eldeck{width:36px;height:36px}
+  .fit .elems{min-height:24px}.fit .el{width:24px;height:24px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <div class="wrap" id="app"></div>
@@ -2843,10 +2867,26 @@ const kindTh=k=>({Avatar:'Avatar',Unit:'Unit',Enchant:'Enchant (เวท)',Coun
 /* ------------------------------------------------------------------ render scheduling */
 let raf=0;
 function scheduleRender(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render()})}
+function fitLayout(){
+  const de=document.documentElement;
+  if(!de.classList.contains('fit')||innerWidth<=1050){de.style.removeProperty('--cwb');return}
+  const main=document.querySelector('.game main');if(!main)return;
+  const top=main.getBoundingClientRect().top+scrollY;
+  let hi=Math.min(82,innerWidth*.054,(innerWidth-726)/7.2),lo=26;
+  const ok=x=>{de.style.setProperty('--cwb',x+'px');return main.getBoundingClientRect().bottom+scrollY<=innerHeight-8};
+  if(hi<=lo){de.style.setProperty('--cwb',lo+'px');return}
+  if(ok(hi))return;
+  for(let i=0;i<7;i++){const m=(hi+lo)/2;if(ok(m))lo=m;else hi=m}
+  de.style.setProperty('--cwb',lo+'px');
+}
+addEventListener('resize',()=>{if(ui.screen==='game')fitLayout()});
 function render(){
+  document.documentElement.classList.toggle('fit',ui.screen==='game');
   const keep=document.querySelector('.log');const atBottom=keep?keep.scrollTop+keep.clientHeight>=keep.scrollHeight-30:true;const ps=document.querySelector('.pbody');const pst=ps?ps.scrollTop:0;
   const ovs=document.querySelector('.ov .list');const ovt=ovs?ovs.scrollTop:0;
   root.innerHTML=ui.screen==='setup'?setupHTML():gameHTML();
+  document.documentElement.classList.toggle('fit',ui.screen==='game'&&ui.cover===null);
+  fitLayout();
   const lg=document.querySelector('.log');if(lg&&atBottom)lg.scrollTop=lg.scrollHeight;
   if(ui.tab!=='log'){const pb=document.querySelector('.pbody');if(pb)pb.scrollTop=pst}
   const o2=document.querySelector('.ov .list');if(o2)o2.scrollTop=ovt;
@@ -2959,14 +2999,15 @@ function sideHTML(p,isTop,fresh){
   const msl=P.magic.map(c=>`<div class="mslot">${c?cardEl(c,{cls:'mini'}):''}</div>`).join('');
   const dsl=Array.from({length:dl},(_,i)=>{const c=P.domains[i];return `<div class="mslot">${c?cardEl(c,{cls:`mini ${hlFor(c.uid)}`}):''}</div>`}).join('');
   const deckTop=P.avatar.card.def.id==='SD02-001'&&P.deck[0]?cardEl(P.deck[0],{cls:'mini'}):`<div class="card back mini"></div>`;
-  const mid=`<div class="row mid"><div class="zone"><span class="zlab">Magic Area</span><div class="in">${msl}</div></div>${av}<div class="zone"><span class="zlab">Domain</span><div class="in">${dsl}</div></div><div class="pile" data-zone="deck" data-p="${p}"><span class="zlab">Main Deck</span><div style="position:relative">${deckTop}<span class="cnt">${P.deck.length}</span></div></div></div>`;
   const dtop=P.discard[P.discard.length-1];
   const dHL=pdOf()&&pdOf().kind==='act'&&pdOf().p===p&&pdOf().spec.actions.some(a=>a.zone==='discard');
-  const el=`<div class="row"><div class="pile"><span class="zlab">Element Deck</span><div class="eldeck">${P.edeck.length}<small>${elIcon(RAW.DECKS[RAW.CARDS.find(c=>c.deck===P.deckSeries)&&P.deckSeries].el,12)}</small></div></div><div class="zone" style="flex:1;min-width:150px"><span class="zlab">Element Area · พร้อมใช้ ${AF.standElems(P).length}/${P.elems.length}</span><div class="elems">${P.elems.map(e=>`<span class="el ${e.state==='rest'?'rest':''}" title="${e.state==='rest'?'Rest (ใช้แล้ว)':'Stand (พร้อมใช้)'}">${elIcon(e.el,18)}</span>`).join('')||'<span class="muted">ยังไม่มี</span>'}</div></div><div class="pile ${dHL?'hl':''}" data-zone="discard" data-p="${p}"><span class="zlab">กองทิ้ง</span><div style="position:relative">${dtop?cardEl(dtop,{cls:'mini'}).replace(/data-uid="\d+"/,''):'<div class="mslot"></div>'}<span class="cnt">${P.discard.length}</span></div></div></div>`;
-  const rows=isTop?[el,mid,action]:[action,mid,el];
+  const eli=`<span class="eli"><span class="eld" title="Element Deck">Element Deck <b>${P.edeck.length}</b>${elIcon(RAW.DECKS[P.deckSeries].el,12)}</span><span class="ela" title="Element ที่พร้อมใช้ / ทั้งหมด">Element <b>${AF.standElems(P).length}/${P.elems.length}</b> <span class="elems">${P.elems.map(e=>`<span class="el ${e.state==='rest'?'rest':''}" title="${e.state==='rest'?'Rest (ใช้แล้ว)':'Stand (พร้อมใช้)'}">${elIcon(e.el,14)}</span>`).join('')||'<span class="muted">ยังไม่มี</span>'}</span></span></span>`;
+  const disc=`<div class="pile ${dHL?'hl':''}" data-zone="discard" data-p="${p}"><span class="zlab">กองทิ้ง</span><div style="position:relative">${dtop?cardEl(dtop,{cls:'mini'}).replace(/data-uid="\d+"/,''):'<div class="mslot"></div>'}<span class="cnt">${P.discard.length}</span></div></div>`;
+  const mid=`<div class="row mid"><div class="zone"><span class="zlab">Magic Area</span><div class="in">${msl}</div></div>${av}<div class="zone"><span class="zlab">Domain</span><div class="in">${dsl}</div></div><div class="pile" data-zone="deck" data-p="${p}"><span class="zlab">Main Deck</span><div style="position:relative">${deckTop}<span class="cnt">${P.deck.length}</span></div></div>${disc}</div>`;
+  const rows=isTop?[mid,action]:[action,mid];
   const handN=P.hand.length;
   const oppHand=isTop?`<div class="hand-opp">${ui.peek?P.hand.map(c=>cardEl(c,{})).join(''):P.hand.map(c=>`<div class="card back"></div>`).join('')}</div>`:'';
-  return `<div class="side ${isTop?'top':'bot'} ${G.active===p&&G.phase!=='over'?'act':''}"><div class="head"><span>${esc(P.name)}</span><span class="pill">${esc(RAW.DECKS[P.deckSeries].name)}</span><span class="pill">มือ ${handN} ใบ</span>${G.active===p?'<span class="pill" style="background:var(--gold);color:#111">กำลังเล่น</span>':''}</div>${isTop?oppHand:''}${rows.join('')}</div>`;
+  return `<div class="side ${isTop?'top':'bot'} ${G.active===p&&G.phase!=='over'?'act':''}"><div class="head"><span>${esc(P.name)}</span><span class="pill">${esc(RAW.DECKS[P.deckSeries].name)}</span><span class="pill">มือ ${handN} ใบ</span>${G.active===p?'<span class="pill" style="background:var(--gold);color:#111">กำลังเล่น</span>':''}${eli}${isTop?oppHand:''}</div>${rows.join('')}</div>`;
 }
 function phaseBar(){
   const G=ui.G;const order=[['start','เริ่ม'],['draw','จั่ว'],['main','Main'],['attack','Attack'],['ultimate','Ultimate'],['end','จบ']];
@@ -3045,22 +3086,22 @@ function overHTML(){
 }
 
 /* ------------------------------------------------------------------ pending modals */
-function pcard(c,o={}){return `<button class="pc ${o.on?'on':''} ${o.off?'off':''}" ${o.off?'disabled':''} data-act="pickc" data-id="${c.uid}">${o.ord?`<span class="ord">${o.ord}</span>`:''}<div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)}</small></button>`}
+function pcard(c,o={}){return `<button class="pc ${o.on?'on':''} ${o.off?'off':''}" ${o.off?'disabled':''} data-act="pickc" data-id="${c.uid}">${o.ord?`<span class="ord">${o.ord}</span>`:''}<div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)}</small></button>`}
 function pendingModalHTML(){
   const pd=pdOf();if(!pd||ui.cover!==null)return '';
   const s=pd.spec;const G=ui.G;
   if(pd.kind==='mulligan'){
-    return `<div class="ov"><div class="dlg"><h2>${esc(G.players[pd.p].name)}: มือเริ่มต้น</h2><p class="muted">เปลี่ยนมือได้ 1 ครั้ง การ์ดทั้งหมดจะไปอยู่ใต้เด็ค จั่วใหม่ 6 ใบ แล้วสับเด็ค</p><div class="cgrid">${s.hand.map(c=>`<div class="pc"><div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)}</small></div>`).join('')}</div><div class="acts"><button class="btn" data-act="mull" data-v="1">เปลี่ยนมือ (Mulligan)</button><button class="btn pri" data-act="mull" data-v="0">เก็บมือนี้</button></div></div></div>`;
+    return `<div class="ov"><div class="dlg"><h2>${esc(G.players[pd.p].name)}: มือเริ่มต้น</h2><p class="muted">เปลี่ยนมือได้ 1 ครั้ง การ์ดทั้งหมดจะไปอยู่ใต้เด็ค จั่วใหม่ 6 ใบ แล้วสับเด็ค</p><div class="cgrid">${s.hand.map(c=>`<div class="pc"><div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)}</small></div>`).join('')}</div><div class="acts"><button class="btn" data-act="mull" data-v="1">เปลี่ยนมือ (Mulligan)</button><button class="btn pri" data-act="mull" data-v="0">เก็บมือนี้</button></div></div></div>`;
   }
   if(pd.kind==='respond'){
     const it=s.item;const P=G.players[pd.p];
     const what=it.kind==='attack'?`การโจมตี: ${esc(it.attacker.def.name)} → ${it.target==='avatar'?'Avatar':esc(it.target.def.name)}`:esc(it.label||it.source.def.name);
     const cards=s.options.map(uid=>P.hand.find(c=>c.uid===uid)).filter(Boolean);
-    return `<div class="ov"><div class="dlg"><h2>${esc(P.name)}: ใช้ Counter ไหม?</h2><p><b>${esc(G.players[it.controller].name)}</b> ทำ ${what}</p><p class="muted">Element ที่พร้อมใช้ ${AF.standElems(P).length} ใบ</p><div class="cgrid">${cards.map(c=>`<button class="pc" data-act="respond" data-id="${c.uid}"><div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)} (Spend ${AF.spellCost(G,pd.p,c,true)})</small></button>`).join('')}</div><div class="acts"><button class="btn pri" data-act="respond" data-id="">ไม่ใช้</button></div></div></div>`;
+    return `<div class="ov"><div class="dlg"><h2>${esc(P.name)}: ใช้ Counter ไหม?</h2><p><b>${esc(G.players[it.controller].name)}</b> ทำ ${what}</p><p class="muted">Element ที่พร้อมใช้ ${AF.standElems(P).length} ใบ</p><div class="cgrid">${cards.map(c=>`<button class="pc" data-act="respond" data-id="${c.uid}"><div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)} (Spend ${AF.spellCost(G,pd.p,c,true)})</small></button>`).join('')}</div><div class="acts"><button class="btn pri" data-act="respond" data-id="">ไม่ใช้</button></div></div></div>`;
   }
   if(pd.kind==='order'){
     const sel=pd.order;
-    return `<div class="ov"><div class="dlg"><h2>${esc(s.title)}</h2><p class="muted">คลิกการ์ดตามลำดับที่ต้องการ เลข 1 = ลำดับแรก</p><div class="cgrid">${s.cards.map(c=>{const i=sel.indexOf(c.uid);return `<button class="pc ${i>=0?'on':''}" data-act="ord" data-id="${c.uid}">${i>=0?`<span class="ord">${i+1}</span>`:''}<div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)}</small></button>`}).join('')}</div><div class="acts"><button class="btn" data-act="ordreset">ล้างลำดับ</button><button class="btn" data-act="ordkeep">ใช้ลำดับเดิม</button><button class="btn pri" data-act="ordok" ${sel.length===s.cards.length?'':'disabled'}>ยืนยัน</button></div></div></div>`;
+    return `<div class="ov"><div class="dlg"><h2>${esc(s.title)}</h2><p class="muted">คลิกการ์ดตามลำดับที่ต้องการ เลข 1 = ลำดับแรก</p><div class="cgrid">${s.cards.map(c=>{const i=sel.indexOf(c.uid);return `<button class="pc ${i>=0?'on':''}" data-act="ord" data-id="${c.uid}">${i>=0?`<span class="ord">${i+1}</span>`:''}<div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)}</small></button>`}).join('')}</div><div class="acts"><button class="btn" data-act="ordreset">ล้างลำดับ</button><button class="btn" data-act="ordkeep">ใช้ลำดับเดิม</button><button class="btn pri" data-act="ordok" ${sel.length===s.cards.length?'':'disabled'}>ยืนยัน</button></div></div></div>`;
   }
   if(pd.kind==='pick'){
     if(s.kind==='units'||s.kind==='attackTarget')return '';
@@ -3108,11 +3149,11 @@ function modalHTML(){
   if(m.t==='discard'){
     const P=G.players[m.p];const pd=pdOf();
     const acts=pd&&pd.kind==='act'&&pd.p===m.p?pd.spec.actions.filter(a=>a.zone==='discard'):[];
-    return `<div class="ov"><div class="dlg"><h2>กองทิ้งของ ${esc(P.name)} (${P.discard.length} ใบ)</h2><div class="cgrid">${[...P.discard].reverse().map(c=>{const a=acts.find(x=>x.uid===c.uid);return `<div class="pc" style="cursor:default"><div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)}</small>${a?`<button class="btn sm" data-act="doactu" data-id="${c.uid}">${esc(a.label)}</button>`:''}</div>`}).join('')||'<span class="muted">ว่าง</span>'}</div>${close}</div></div>`;
+    return `<div class="ov"><div class="dlg"><h2>กองทิ้งของ ${esc(P.name)} (${P.discard.length} ใบ)</h2><div class="cgrid">${[...P.discard].reverse().map(c=>{const a=acts.find(x=>x.uid===c.uid);return `<div class="pc" style="cursor:default"><div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)}</small>${a?`<button class="btn sm" data-act="doactu" data-id="${c.uid}">${esc(a.label)}</button>`:''}</div>`}).join('')||'<span class="muted">ว่าง</span>'}</div>${close}</div></div>`;
   }
   if(m.t==='deck'){
     const P=G.players[m.p];
-    return `<div class="ov"><div class="dlg"><h2>ดึงการ์ดจากเด็คขึ้นมือ</h2><p class="muted">เครื่องมือผู้ทดสอบ จะสับเด็คหลังดึง</p><div class="cgrid">${[...P.deck].sort((a,b)=>a.def.id.localeCompare(b.def.id)).map(c=>`<button class="pc" data-act="fetchc" data-id="${c.uid}"><div class="card ${cardArt(c.def.id)}"></div><small>${esc(c.def.name)}</small></button>`).join('')}</div>${close}</div></div>`;
+    return `<div class="ov"><div class="dlg"><h2>ดึงการ์ดจากเด็คขึ้นมือ</h2><p class="muted">เครื่องมือผู้ทดสอบ จะสับเด็คหลังดึง</p><div class="cgrid">${[...P.deck].sort((a,b)=>a.def.id.localeCompare(b.def.id)).map(c=>`<button class="pc" data-act="fetchc" data-id="${c.uid}"><div class="card ${cardArt(c.def.id)}" data-pop="${c.uid}"></div><small>${esc(c.def.name)}</small></button>`).join('')}</div>${close}</div></div>`;
   }
   if(m.t==='pile')return `<div class="ov"><div class="dlg narrow"><h2>Main Deck ของ ${esc(G.players[m.p].name)}</h2><p>เหลือ ${G.players[m.p].deck.length} ใบ</p>${close}</div></div>`;
   if(m.t==='edit'){
@@ -3178,13 +3219,14 @@ function setInspect(c){
   ui.inspect=c;if(ui.tab==='card'&&pb)pb.innerHTML=inspectorHTML(c);
 }
 const canHover=matchMedia('(hover:hover)').matches;
-root.addEventListener('mouseover',e=>{if(!ui.G||ui.screen!=='game')return;const el=e.target.closest('[data-uid]');if(el){const c=cardMap()[+el.dataset.uid];if(c){setInspect(c);if(canHover)showPop(c,el,false)}}});
-root.addEventListener('mouseout',e=>{if(popPin)return;const el=e.target.closest('[data-uid]');if(el&&!(e.relatedTarget&&el.contains(e.relatedTarget)))hidePop()});
+root.addEventListener('mouseover',e=>{if(!ui.G||ui.screen!=='game')return;const pp=e.target.closest('[data-pop]');if(pp){const c=cardMap()[+pp.dataset.pop];if(c&&canHover)showPop(c,pp,false);return}const el=e.target.closest('[data-uid]');if(el){const c=cardMap()[+el.dataset.uid];if(c){setInspect(c);if(canHover)showPop(c,el,false)}}});
+root.addEventListener('mouseout',e=>{if(popPin)return;const el=e.target.closest('[data-uid],[data-pop]');if(el&&!(e.relatedTarget&&el.contains(e.relatedTarget)))hidePop()});
 root.addEventListener('input',e=>{if(e.target.id==='nsearch'){const q=e.target.value.trim();document.querySelectorAll('#nlist [data-n]').forEach(b=>b.hidden=q&&!b.dataset.n.includes(q))}});
 root.addEventListener('click',e=>{
   hidePop();
   const a=e.target.closest('[data-act]');
   if(a)return handle(a.dataset.act,a.dataset,a,e);
+  const pp=e.target.closest('[data-pop]');if(pp){const c=cardMap()[+pp.dataset.pop];if(c)showPop(c,pp,false);popPin=true;return}
   const z=e.target.closest('[data-zone]');
   const u=e.target.closest('[data-uid]');
   if(u&&ui.screen==='game'&&!(z&&z.dataset.zone==='avatar'&&u===z))return onCard(+u.dataset.uid,u);
