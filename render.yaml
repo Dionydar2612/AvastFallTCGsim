@@ -1,0 +1,7 @@
+# Render Blueprint: เว็บสแตติก (ไม่ต้องมีเซิร์ฟเวอร์ ไม่ต้องใช้ดิสก์)
+services:
+  - type: web
+    name: avastfalltcgsim
+    runtime: static
+    staticPublishPath: .
+    buildCommand: echo "static site"
