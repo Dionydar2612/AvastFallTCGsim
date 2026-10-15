@@ -8,7 +8,8 @@ function fitLayout(){
   if(!de.classList.contains('fit')||innerWidth<=1050){de.style.removeProperty('--cwb');return}
   const main=document.querySelector('.game main');if(!main)return;
   const top=main.getBoundingClientRect().top+scrollY;
-  let hi=Math.min(82,innerWidth*.054,(innerWidth-726)/7.2),lo=26;
+  const W=innerWidth/((ui.scale||100)/100);   // ความกว้างจริงในหน่วยหลัง zoom
+  let hi=Math.min(82,W*.054,(W-726)/7.2),lo=26;
   const ok=x=>{de.style.setProperty('--cwb',x+'px');return main.getBoundingClientRect().bottom+scrollY<=innerHeight-8};
   if(hi<=lo){de.style.setProperty('--cwb',lo+'px');return}
   if(ok(hi))return;
@@ -24,7 +25,7 @@ function render(){
   /* เก็บโฟกัส/ตำแหน่งเคอร์เซอร์ของช่องกรอก (เช่นฟอร์มข้อเสนอแนะ) ไม่ให้หลุดเมื่อมีการ render ซ้ำ */
   const ae=document.activeElement;let fk=null;
   if(ae&&ae.dataset&&ae.dataset.fb){try{fk={k:ae.dataset.fb,s:ae.selectionStart,e:ae.selectionEnd}}catch(_){fk={k:ae.dataset.fb}}}
-  root.innerHTML=ui.screen==='setup'?(ui.page==='mydecks'?mydecksHTML():ui.page==='guide'?guideHTML():setupHTML()):gameHTML();
+  root.innerHTML=ui.screen==='setup'?(ui.page==='mydecks'?mydecksHTML():setupHTML()):gameHTML();
   document.querySelectorAll('[data-ks]').forEach(e=>{if(ks[e.dataset.ks]!=null)e.scrollTop=ks[e.dataset.ks]});
   document.documentElement.classList.toggle('fit',ui.screen==='game'&&ui.cover===null);
   if(fk){const el=document.querySelector('[data-fb="'+fk.k+'"]');if(el){el.focus();try{if(fk.s!=null)el.setSelectionRange(fk.s,fk.e)}catch(_){}}}
