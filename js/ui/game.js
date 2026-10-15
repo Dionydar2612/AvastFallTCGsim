@@ -146,29 +146,42 @@ function inspectorHTML(c){
 }
 function panelHTML(){
   const G=ui.G;
-  const tabs=[['card','การ์ด'],['log','บันทึก'],['tools','เครื่องมือ'],['rule','กติกา']];
+  const tabs=[['card','การ์ด'],['log','บันทึก'],['rule','กติกา']];
   let body='';
   if(ui.tab==='card')body=inspectorHTML(ui.inspect&&cardMap()[ui.inspect.uid]);
-  else if(ui.tab==='log')body=`<div class="log">${G.log.map(l=>`<div class="${l.extra&&l.extra.divider?'div':'p'+(l.p===null?'':l.p)}">${esc(l.text)}</div>`).join('')}</div>`;
-  else if(ui.tab==='tools'){
-    const vv=ui.viewer;
-    body=`<div class="tools"><p class="muted">เครื่องมือผู้ทดสอบ ใช้จัดสถานการณ์หรือทำผลการ์ดด้วยมือ ผลมีต่อผู้เล่นที่อยู่ล่างจอ (${esc(G.players[vv].name)})</p>
-    <div class="g"><button class="btn sm" data-act="tool" data-v="draw">จั่ว 1 ใบ</button><button class="btn sm" data-act="tool" data-v="element">+1 Element</button><button class="btn sm" data-act="tool" data-v="restore">ฟื้น Element</button></div>
-    <div class="g"><button class="btn sm" data-act="tool" data-v="hp-1">HP −1</button><button class="btn sm" data-act="tool" data-v="hp+1">HP +1</button><button class="btn sm" data-act="tool" data-v="fetch">ดึงการ์ดจากเด็คขึ้นมือ</button></div>
-    <div class="g"><button class="btn sm" data-act="tool" data-v="peek">${ui.peek?'ซ่อนมือคู่ต่อสู้':'เปิดมือคู่ต่อสู้'}</button><button class="btn sm" data-act="speed">ความเร็วบอท</button></div>
-    <div class="g"><button class="btn sm" data-act="restart">เริ่มเกมใหม่ (เด็คเดิม)</button><button class="btn sm" data-act="tosetup">กลับไปตั้งค่า</button></div></div>`;
-  }else body=rulesHTML(true);
+  else if(ui.tab==='log')body=`<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn sm" data-act="dllog">⬇ ดาวน์โหลด Log Battle</button></div><div class="log">${G.log.map(l=>`<div class="${l.extra&&l.extra.divider?'div':'p'+(l.p===null?'':l.p)}">${esc(l.text)}</div>`).join('')}</div>`;
+  else body=rulesHTML(true);
   return `<aside class="panel"><div class="tabs">${tabs.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}</button>`).join('')}</div><div class="pbody">${body}</div></aside>`;
 }
 function gameHTML(){
   const G=ui.G;const fresh=freshLog();const v=ui.viewer;
   if(ui.cover!==null)return `<div class="cover"><div style="display:grid;gap:14px;justify-items:center"><h1>ส่งอุปกรณ์ให้ ${esc(G.players[ui.cover].name)}</h1><p>ให้ผู้เล่นอีกฝั่งหันหน้าหนี แล้วกดเมื่อพร้อม</p><button class="btn" data-act="ready">พร้อมแล้ว</button></div></div>`;
   const opp=1-v;
-  return `<div class="top"><div class="brand"><i>A</i>AvastFall Playtest<span class="ot-tag">OPEN TEST</span></div><span class="pill">เทิร์น ${G.turn}</span>${phaseBar()}<span class="spacer"></span><button class="btn sm" data-act="help">กติกา</button><button class="btn sm" data-act="restart">เริ่มใหม่</button></div>
+  return `<div class="top"><div class="brand"><i>A</i>AvastFall Playtest</div><span class="pill">เทิร์น ${G.turn}</span>${phaseBar()}<span class="spacer"></span><button class="btn sm" data-act="settings">⚙ ตั้งค่า</button><button class="btn sm" data-act="help">กติกา</button><button class="btn sm" data-act="restart">เริ่มใหม่</button><button class="btn sm" data-act="surrender">ยอมแพ้</button></div>
   <div class="game"><main style="min-width:0">${sideHTML(opp,true,fresh)}${chainHTML()}${barHTML()}${sideHTML(v,false,fresh)}${handHTML()}</main>${panelHTML()}</div>
-  ${ui.menu?menuHTML():''}${ui.over?overHTML():''}${pendingModalHTML()}${ui.modal?modalHTML():''}`;
+  ${ui.menu?menuHTML():''}${ui.over?overHTML():''}${pendingModalHTML()}${ui.modal?modalHTML():''}${ui.settings?settingsHTML():''}`;
 }
 function overHTML(){
   const G=ui.G,r=ui.over;
   return `<div class="ov"><div class="dlg narrow over"><h2>จบเกม</h2><div class="win">${r.winner==null?'เสมอ':esc(G.players[r.winner].name)+' ชนะ'}</div><div>${esc(r.reason)}</div><div class="muted">เล่นไป ${G.turn} เทิร์น · HP ${G.players.map(P=>esc(P.name)+' '+P.avatar.hp).join(' / ')}</div><div class="acts"><button class="btn" data-act="closeover">ดูกระดาน</button><button class="btn" data-act="tosetup">ตั้งค่าใหม่</button><button class="btn pri" data-act="restart">เล่นอีกครั้ง</button></div></div></div>`;
 }
+
+/* ------------------------------------------------------------------ ตั้งค่า: ขนาดหน้าจอ (zoom ทั้งหน้า เก็บในเครื่อง) */
+const SCALE_KEY='af-scale',SCALE_MIN=70,SCALE_MAX=130;
+function loadScale(){let v=100;try{v=parseInt(localStorage.getItem(SCALE_KEY),10)}catch(e){}return v>=SCALE_MIN&&v<=SCALE_MAX?v:100}
+function applyScale(v,save){
+  v=Math.max(SCALE_MIN,Math.min(SCALE_MAX,Math.round(v)));
+  ui.scale=v;document.documentElement.style.zoom=v===100?'':String(v/100);
+  if(save!==false){try{localStorage.setItem(SCALE_KEY,v)}catch(e){}}
+  if(ui.screen==='game'&&typeof fitLayout==='function')fitLayout();
+}
+function settingsHTML(){
+  const v=ui.scale||100;
+  return `<div class="ov"><div class="dlg narrow"><h2>ตั้งค่า</h2>
+    <label class="fl">ขนาดหน้าจอ <b id="scaleval">${v}%</b>
+      <input id="scalerange" type="range" min="${SCALE_MIN}" max="${SCALE_MAX}" step="5" value="${v}" style="width:100%"></label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${[80,90,100,110,120].map(n=>`<button class="btn sm ${n===v?'pri':''}" data-act="setscale" data-v="${n}">${n}%</button>`).join('')}</div>
+    <p class="muted">ปรับขนาดการ์ดและตัวอักษรทั้งหน้า ค่าที่เลือกจะถูกจำไว้ในเบราว์เซอร์นี้</p>
+    <div class="acts"><button class="btn" data-act="setscale" data-v="100">รีเซ็ต 100%</button><button class="btn pri" data-act="closesettings">ปิด</button></div></div></div>`;
+}
+applyScale(loadScale(),false);
