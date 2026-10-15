@@ -127,6 +127,26 @@ function handle(act,d,el,e){
     case 'restart':return startGame();
     case 'tosetup':ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;return render();
     case 'tab':ui.tab=d.v;return render();
+    case 'settings':ui.settings=true;return render();
+    case 'closesettings':ui.settings=false;return render();
+    case 'setscale':applyScale(+d.v);return render();
+    case 'surrender':{
+      if(!confirm('ยอมแพ้และกลับไปหน้าแรก?'))return;
+      ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;ui.menu=null;ui.settings=false;
+      return render();
+    }
+    case 'dllog':{
+      const G=ui.G;
+      const head=`AvastFall Playtest – Battle Log\nผู้เล่น: ${G.players.map(P=>P.name).join(' vs ')}\nเทิร์นล่าสุด: ${G.turn}\nบันทึกเมื่อ: ${new Date().toLocaleString('th-TH')}\n${'='.repeat(40)}\n`;
+      const body=G.log.map(l=>l.extra&&l.extra.divider?`\n----- ${l.text} -----`:`[T${l.turn}] ${l.text}`).join('\n');
+      const blob=new Blob([head+body+'\n'],{type:'text/plain;charset=utf-8'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='avastfall-battlelog-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.txt';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      return;
+    }
     case 'ready':ui.viewer=ui.cover;ui.cover=null;return render();
     case 'speed':{const s=ui.cfg.speed;ui.cfg.speed=s>=800?0:s===0?250:s<300?550:1000;saveCfg();return render()}
     case 'pass':return answer({t:'pass'});
@@ -145,19 +165,12 @@ function handle(act,d,el,e){
     case 'ordreset':pd.order=[];return render();
     case 'ordkeep':return answer(pd.spec.cards.map(c=>c.uid));
     case 'ordok':return answer(pd.order.slice());
-    case 'tool':{
-      const v=ui.viewer;
-      if(d.v==='draw')AF.tools.draw(G,v);else if(d.v==='element')AF.tools.element(G,v);else if(d.v==='restore')AF.tools.restoreElements(G,v);
-      else if(d.v==='hp-1')AF.tools.hp(G,v,-1);else if(d.v==='hp+1')AF.tools.hp(G,v,1);
-      else if(d.v==='fetch'){ui.modal={t:'deck',p:v};}
-      else if(d.v==='peek')ui.peek=!ui.peek;
-      return render();
-    }
-    case 'fetchc':{AF.tools.fetch(G,ui.viewer,+d.id);ui.modal=null;return render()}
   }
 }
 // answer the pick for names: engine expects option ids (names)
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.modal&&ui.modal.t!=='ded'){ui.modal=null;render()}});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(ui.settings){ui.settings=false;render();return}if(ui.modal&&ui.modal.t!=='ded'){ui.modal=null;render()}}});
+// สไลเดอร์ขนาดหน้าจอ: ปรับสดโดยไม่ render ใหม่ (กันสไลเดอร์สะดุดขณะลาก)
+root.addEventListener('input',e=>{if(e.target.id!=='scalerange')return;applyScale(+e.target.value);const l=document.getElementById('scaleval');if(l)l.textContent=ui.scale+'%'});
 
 /* ส่งข้อเสนอแนะ (ตัวส่งจริงอยู่ที่ js/data/feedback-api.js) */
 async function sendFeedback(){
