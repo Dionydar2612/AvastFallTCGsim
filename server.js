@@ -19,6 +19,9 @@ const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const FILE = path.join(DATA_DIR, 'feedback.json');
 const CATS = { suggest: 'ข้อเสนอแนะ', bug: 'พบข้อผิดพลาด', card: 'เรื่องการ์ด/เอฟเฟกต์', rule: 'เรื่องกติกา', other: 'อื่น ๆ' };
 const MAX_ITEMS = 5000;
+const NOTIFY_TO = process.env.NOTIFY_EMAIL || 'saknarinnumber8@gmail.com';   // อีเมลที่รับสำเนาทุกครั้ง
+const RESEND_KEY = process.env.RESEND_API_KEY || '';                        // คีย์จาก resend.com
+const MAIL_FROM = process.env.MAIL_FROM || 'AvastFall Feedback <onboarding@resend.dev>';
 
 /* ---------------------------------------------------------------- storage */
 let items = [];
@@ -53,6 +56,25 @@ function body(req, max = 8192) {
 }
 const send = (res, code, type, text, extra = {}) => { res.writeHead(code, Object.assign({ 'content-type': type, 'cache-control': 'no-store' }, extra)); res.end(text); };
 const json = (res, code, obj, extra) => send(res, code, 'application/json; charset=utf-8', JSON.stringify(obj), extra);
+
+/* ---------------------------------------------------------------- อีเมลสำเนา (Resend HTTP API เพราะ Render ฟรีบล็อก SMTP) */
+async function notify(it) {
+  if (!RESEND_KEY) { console.warn('ยังไม่ได้ตั้ง RESEND_API_KEY จึงไม่ส่งอีเมล'); return; }
+  const cat = CATS[it.category] || it.category;
+  const ctx = Object.entries(it.context || {}).map(([k, v]) => esc(k) + ': ' + esc(v)).join(' · ');
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'authorization': 'Bearer ' + RESEND_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        from: MAIL_FROM, to: [NOTIFY_TO],
+        subject: '[AvastFall] ' + cat + ' - ' + it.text.slice(0, 50).replace(/\n/g, ' '),
+        html: '<p><b>' + esc(cat) + '</b> · จาก: ' + esc(it.name || 'ไม่ระบุชื่อ') + (it.contact ? ' · ติดต่อ: ' + esc(it.contact) : '') + '</p><p style="white-space:pre-wrap">' + esc(it.text) + '</p><p style="color:#888">' + ctx + '</p>'
+      })
+    });
+    if (!r.ok) console.error('ส่งอีเมลไม่สำเร็จ', r.status, await r.text());
+  } catch (err) { console.error('ส่งอีเมลไม่สำเร็จ', err.message); }
+}
 
 /* ---------------------------------------------------------------- หน้า /recommece */
 function page(u, req) {
@@ -123,9 +145,11 @@ http.createServer(async (req, res) => {
         if (text.length < 3) return json(res, 400, { ok: false, error: 'กรุณาพิมพ์ข้อความอย่างน้อย 3 ตัวอักษร' }, cors);
         if (limited(ipOf(req))) return json(res, 429, { ok: false, error: 'ส่งบ่อยเกินไป รอสักครู่แล้วลองใหม่' }, cors);
         const ctx = {}; if (d.context && typeof d.context === 'object') for (const k of Object.keys(d.context).slice(0, 6)) ctx[clip(k, 20)] = clip(d.context[k], 120);
-        items.push({ id: crypto.randomBytes(6).toString('hex'), at: Date.now(), category: CATS[d.category] ? d.category : 'suggest', text, name: clip(d.name, 60), contact: clip(d.contact, 100), context: ctx });
+        const item = { id: crypto.randomBytes(6).toString('hex'), at: Date.now(), category: CATS[d.category] ? d.category : 'suggest', text, name: clip(d.name, 60), contact: clip(d.contact, 100), context: ctx };
+        items.push(item);
         if (items.length > MAX_ITEMS) items = items.slice(-MAX_ITEMS);
         try { save(); } catch (e) { console.error('save failed', e.message); return json(res, 500, { ok: false, error: 'บันทึกไม่สำเร็จ' }, cors); }
+        notify(item);   // ส่งสำเนาอีเมลเบื้องหลัง ไม่รอผล
         return json(res, 200, { ok: true }, cors);
       }
       if (req.method === 'GET') {

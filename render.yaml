@@ -8,6 +8,10 @@ services:
     envVars:
       - key: ADMIN_KEY          # รหัสสำหรับเปิด /recommece?key=...  (Render สุ่มให้ ดูได้ที่ Dashboard > Environment)
         generateValue: true
+      - key: RESEND_API_KEY     # คีย์จาก resend.com (สมัครด้วยอีเมล saknarinnumber8@gmail.com) ใส่ใน Dashboard > Environment
+        sync: false
+      - key: NOTIFY_EMAIL
+        value: saknarinnumber8@gmail.com
     # ดิสก์ถาวร (ต้องใช้แพ็กเกจที่เสียเงิน) ถ้าไม่มี ข้อเสนอแนะจะหายเมื่อ deploy ใหม่/รีสตาร์ต
     # ถ้าใช้ดิสก์ ให้เอาคอมเมนต์ออก และเพิ่ม envVar  DATA_DIR = /var/data
     # disk:
