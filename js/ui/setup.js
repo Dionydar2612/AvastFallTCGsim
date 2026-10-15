@@ -5,7 +5,7 @@ function navHTML(){
   const st=DATA.status;const iss=DATA.issues();
   const txt=st.state==='loading'?'กำลังโหลดการ์ดจาก card-api…':st.state==='live'?`การ์ดจาก card-api · ${st.count} ใบ`:st.state==='cache'?`การ์ดที่บันทึกไว้ · ${st.count} ใบ (ต่อ card-api ไม่ได้)`:`การ์ดที่ฝังไว้ · ${st.count} ใบ (ต่อ card-api ไม่ได้)`;
   const warn=iss.unscripted.length+iss.stale.length;
-  return `<div class="top"><div class="brand"><i>A</i>AvastFall Playtest</div>
+  return `<div class="top"><div class="brand"><i>A</i>AvastFall Playtest<span class="ot-tag">OPEN TEST</span></div>
   <nav class="tabs"><button class="${ui.page==='play'?'on':''}" data-act="page" data-v="play">เล่น</button><button class="${ui.page==='mydecks'?'on':''}" data-act="page" data-v="mydecks">เด็คของฉัน${ui.my.length?` (${ui.my.length})`:''}</button><a href="${esc(DATA.apiBase())}/" target="_blank" rel="noopener">Card List ↗</a></nav>
   <span class="spacer"></span><button class="chip ${st.state}" data-act="data" title="ข้อมูลการ์ด"><i></i>${esc(txt)}${warn?` · ⚠ ${warn}`:''}</button><button class="btn sm" data-act="help">กติกาโดยย่อ</button><button class="btn sm" data-act="notes">ข้อสังเกต</button><button class="btn sm" data-act="feedback">ข้อเสนอแนะ</button></div>`;
 }
@@ -26,7 +26,7 @@ function setupHTML(){
     ${w?`<div class="note"><b>⚠ ${w} ใบในเด็คนี้</b> ยังไม่มีสคริปต์เอฟเฟกต์ หรือข้อความต่างจากที่สคริปต์เขียนไว้ ผลอาจไม่ครบ ดูรายละเอียดที่ชิป "ข้อมูลการ์ด" ด้านบน</div>`:''}</section>`};
   const bad=[0,1].some(i=>deckErrors(c.sel[i]).length);
   return `${navHTML()}
-  <div class="hero"><h1>ทดลองเล่นการ์ดตามกติกา Revised</h1><p class="muted">เล่นกับบอท เล่นสองคนในเครื่องเดียว หรือดูบอทสองฝั่งเล่นกันเอง ใช้การ์ดล่าสุดจาก card-api และสร้างเด็คของตัวเองได้ที่แท็บ "เด็คของฉัน"</p></div>
+  <div class="hero"><span class="ot-badge"><i></i>OPEN TEST · เปิดให้ทดลองเล่น</span><h1>ร่วมทดลองเล่น AvastFall TCG <span class="ot-rev">กติกา Revised</span></h1><p class="muted">ขอเชิญทุกคนมาลองเล่นเวอร์ชันทดสอบ เล่นกับบอท ชวนเพื่อนเล่นสองคนในเครื่องเดียว หรือดูบอทเล่นกันเองก็ได้ ไม่ต้องสมัครหรือติดตั้งอะไร และสร้างเด็คของตัวเองได้ที่แท็บ "เด็คของฉัน"<br>เวอร์ชันนี้ยังอยู่ในช่วงทดสอบ การ์ดและกติกาอาจมีการปรับเปลี่ยน เจอบั๊กหรืออยากแนะนำอะไร บอกเราได้เลย</p><div class="ot-cta"><button class="btn pri" data-act="feedback">ส่งข้อเสนอแนะ / แจ้งบั๊ก</button></div></div>
   <div class="opts"><div class="opt"><label>โหมด</label><div class="seg">${[['bot','เล่นกับบอท'],['hot','สองคนในเครื่องเดียว'],['spec','ดูบอทเล่นกันเอง']].map(([k,l])=>`<button class="${c.mode===k?'on':''}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div></div></div>
   <div class="setup" style="margin-top:16px">${pb(0)}${pb(1)}</div>
   <div class="opts"><div class="opt"><label>ใครเล่นก่อน</label><div class="seg">${[['random','สุ่ม'],['0','ผู้เล่น 1'],['1','ผู้เล่น 2']].map(([k,l])=>`<button class="${String(c.first)===k?'on':''}" data-act="first" data-v="${k}">${l}</button>`).join('')}</div></div></div>
