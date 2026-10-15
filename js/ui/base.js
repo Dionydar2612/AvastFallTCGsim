@@ -10,4 +10,4 @@ const ELEMENTS={"พืช":{c:"#0a9a4b",p:"M4 14C4 7 8 4 14 4c0 6-3 10-10 10z"}
 const elIcon=(n,s=20)=>{const e=ELEMENTS[n];return e?`<svg width="${s}" height="${s}" viewBox="0 0 18 18"><path d="${e.p}" fill="${e.c}"/></svg>`:''};
 
 /* ------------------------------------------------------------------ state */
-const ui={screen:'setup',cfg:null,G:null,token:0,pending:null,viewer:0,inspect:null,sel:null,menu:null,modal:null,tab:'card',cover:null,seen:0,toast:'',peek:false,edit:null,over:null,err:'',fresh:[],page:'play',my:[],ed:null,confirmDel:null};
+const ui={fb:{cat:'suggest',text:'',name:'',contact:'',busy:false,msg:'',ok:false},screen:'setup',cfg:null,G:null,token:0,pending:null,viewer:0,inspect:null,sel:null,menu:null,modal:null,tab:'card',cover:null,seen:0,toast:'',peek:false,edit:null,over:null,err:'',fresh:[],page:'play',my:[],ed:null,confirmDel:null};

@@ -1,6 +1,6 @@
 # AvastFall Playtest (เว็บทดลองเล่น)
 
-เว็บสแตติก ไม่ต้อง build ไม่ต้องใช้ Node เปิด `index.html` ผ่านโฮสต์ใดก็ได้ (เปิดไฟล์ตรง ๆ ก็เล่นได้ แต่เรียก card-api ไม่ได้ ต้องผ่านโฮสต์)
+หน้าเว็บเป็นสแตติก ไม่ต้อง build ส่วน `server.js` (Node ล้วน ไม่ต้อง npm install) เสิร์ฟหน้าเว็บและเก็บข้อเสนอแนะ รันในเครื่อง: `ADMIN_KEY=รหัส node server.js` แล้วเปิด http://localhost:8080
 
 ## โครงสร้างไฟล์ (แยกตามหน้าที่)
 
@@ -13,8 +13,10 @@ js/engine/engine.js        กติกาเกม (ไม่แตะ DOM) · 
 js/effects/_kit.js         ตัวช่วยที่สคริปต์การ์ดใช้ร่วมกัน
 js/effects/sd01..sd04.js   เอฟเฟกต์การ์ดแยกตามชุด  FX['SD04-012'] = {...}  + NOTES['SD04-012'] = '...'
 js/bot.js                  บอท
+server.js                  เซิร์ฟเวอร์เล็ก: เสิร์ฟหน้าเว็บ + ข้อเสนอแนะ (/api/feedback, /recommece)
 
 js/data/cards-api.js       ชั้นดึงข้อมูล: card-api, สำเนาในเบราว์เซอร์, URL รูปการ์ด, ตรวจการ์ดใหม่/ข้อความเปลี่ยน
+js/data/feedback-api.js    ส่งข้อเสนอแนะไปเซิร์ฟเวอร์
 js/data/snapshot.js        ชุดการ์ดสำรอง และเป็น "ข้อความที่สคริปต์เขียนไว้ตามนั้น"
 
 js/ui/*.js                 หน้าจอ (base, notes, data-sync, decks, render, setup, mydecks, game, modals, events, main)
@@ -36,10 +38,16 @@ UI ไม่รู้เรื่องการดึงข้อมูล (อ
 ## หน้าตั้งค่า
 เหลือเฉพาะ "โหมด" และ "ใครเล่นก่อน" ส่วนอื่นเป็นกติกาคงที่: Domain ต่อฝั่ง 3 ใบ · ธีอัลฟีตามข้อความการ์ด · เด็คต้อง 60 ใบเสมอ
 
+## ข้อเสนอแนะจากผู้เล่น
+- ปุ่ม "ข้อเสนอแนะ" (ต่อจาก "ข้อสังเกต") ส่งไป `POST /api/feedback` เก็บใน `DATA_DIR/feedback.json`
+- เจ้าของอ่านที่ **`/recommece?key=<ADMIN_KEY>`** (ใช้ `/recommend` ได้เหมือนกัน) กรองตามหัวข้อ ลบ และดาวน์โหลด JSON ได้ ถ้าไม่ตั้ง ADMIN_KEY ทุกคนที่รู้ลิงก์เปิดอ่านได้ แต่ลบไม่ได้
+- กันสแปม: 5 ข้อความ / 10 นาที ต่อ IP, ช่องซ่อนดักบอท, จำกัดความยาว
+- **บน Render:** ต้องเป็น Web Service (ดู `render.yaml`) ข้อมูลอยู่ในดิสก์ของเครื่อง แพ็กเกจฟรีไม่มีดิสก์ถาวร ข้อเสนอแนะจะหายเมื่อ deploy ใหม่หรือเครื่องรีสตาร์ต ถ้าต้องการให้อยู่ถาวรให้ผูก Persistent Disk (เสียเงิน) แล้วตั้ง `DATA_DIR` ไปที่ path ของดิสก์ หรือโหลด JSON เก็บไว้เป็นระยะ
+
 ## เด็คของฉัน
 เก็บใน localStorage ของเบราว์เซอร์ (`af-mydecks`) ส่งต่อได้ด้วยปุ่ม "คัดลอกเป็นข้อความ" / "นำเข้าจากข้อความ"
 
-## Deploy บน Render (Static Site)
-1. push โฟลเดอร์นี้ขึ้น GitHub (หรือใช้ `render.yaml` ผ่าน Blueprint)
-2. New → Static Site → Publish directory = `.` , Build command เว้นว่างหรือ `echo ok`
-3. ตั้งชื่อ service เป็น `avastfalltcgsim`
+## Deploy บน Render (Web Service)
+1. push โฟลเดอร์นี้ขึ้น GitHub แล้วใช้ `render.yaml` ผ่าน Blueprint (หรือ New → Web Service: Runtime Node, Start command `node server.js`)
+2. ADMIN_KEY ถูกสุ่มให้ ดูได้ที่ Dashboard → Environment แล้วเปิด `https://<ชื่อ>.onrender.com/recommece?key=<ค่านั้น>`
+3. ถ้าเคยตั้งเป็น Static Site ไว้ ต้องสร้างเป็น Web Service ใหม่ (Static Site รันเซิร์ฟเวอร์ไม่ได้ ข้อเสนอแนะจะส่งไม่สำเร็จ)

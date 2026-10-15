@@ -1,7 +1,16 @@
-# Render Blueprint: เว็บสแตติก (ไม่ต้องมีเซิร์ฟเวอร์ ไม่ต้องใช้ดิสก์)
+# Render Blueprint: เว็บ Node เล็ก ๆ (เสิร์ฟหน้าเว็บ + รับข้อเสนอแนะที่ /api/feedback + หน้าอ่าน /recommece)
 services:
   - type: web
     name: avastfalltcgsim
-    runtime: static
-    staticPublishPath: .
-    buildCommand: echo "static site"
+    runtime: node
+    buildCommand: echo "no build"
+    startCommand: node server.js
+    envVars:
+      - key: ADMIN_KEY          # รหัสสำหรับเปิด /recommece?key=...  (Render สุ่มให้ ดูได้ที่ Dashboard > Environment)
+        generateValue: true
+    # ดิสก์ถาวร (ต้องใช้แพ็กเกจที่เสียเงิน) ถ้าไม่มี ข้อเสนอแนะจะหายเมื่อ deploy ใหม่/รีสตาร์ต
+    # ถ้าใช้ดิสก์ ให้เอาคอมเมนต์ออก และเพิ่ม envVar  DATA_DIR = /var/data
+    # disk:
+    #   name: feedback
+    #   mountPath: /var/data
+    #   sizeGB: 1

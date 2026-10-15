@@ -63,7 +63,7 @@ root.addEventListener('mouseout',e=>{if(popPin)return;const el=e.target.closest(
 root.addEventListener('change',e=>{const t=e.target.closest('[data-chg]');if(!t)return;const v=t.type==='checkbox'?t.checked:t.value;
   if(t.dataset.chg==='edf'){ui.ed[t.dataset.k]=v;return render()}
   if(t.dataset.chg==='edfrom'){const b=v?deckByKey(v):null;if(b){ui.ed.avatar=b.avatar;ui.ed.counts=Object.assign({},b.counts);if(b.edeck){ui.ed.edeck=Object.assign({},b.edeck);ui.ed.edeckAuto=false}else{ui.ed.edeck=null;ui.ed.edeckAuto=true}}return render()}});
-root.addEventListener('input',e=>{if(e.target.id==='edname'&&ui.ed){ui.ed.name=e.target.value;return}if(e.target.id==='edq'&&ui.ed){const q=e.target.value.trim().toLowerCase();ui.ed.q=e.target.value;document.querySelectorAll('.pgrid .pt').forEach(b=>b.hidden=!!q&&!b.dataset.q.includes(q));return}if(e.target.id==='nsearch'){const q=e.target.value.trim();document.querySelectorAll('#nlist [data-n]').forEach(b=>b.hidden=q&&!b.dataset.n.includes(q))}});
+root.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.fb){ui.fb[e.target.dataset.fb]=e.target.value;return}if(e.target.id==='edname'&&ui.ed){ui.ed.name=e.target.value;return}if(e.target.id==='edq'&&ui.ed){const q=e.target.value.trim().toLowerCase();ui.ed.q=e.target.value;document.querySelectorAll('.pgrid .pt').forEach(b=>b.hidden=!!q&&!b.dataset.q.includes(q));return}if(e.target.id==='nsearch'){const q=e.target.value.trim();document.querySelectorAll('#nlist [data-n]').forEach(b=>b.hidden=q&&!b.dataset.n.includes(q))}});
 root.addEventListener('click',e=>{
   hidePop();
   const a=e.target.closest('[data-act]');
@@ -118,6 +118,9 @@ function handle(act,d,el,e){
     case 'start':return startGame();
     case 'help':ui.modal={t:'help'};return render();
     case 'notes':ui.modal={t:'notes'};return render();
+    case 'feedback':ui.fb.msg='';ui.fb.ok=false;ui.modal={t:'feedback'};return render();
+    case 'fbagain':ui.fb=Object.assign(ui.fb,{text:'',msg:'',ok:false});return render();
+    case 'fbsend':return sendFeedback();
     case 'closemodal':ui.modal=null;return render();
     case 'closemenu':ui.menu=null;return render();
     case 'closeover':ui.over=ui.over;ui.hideOver=true;ui.overShown=false;ui.over=null;return render();
@@ -155,3 +158,17 @@ function handle(act,d,el,e){
 }
 // answer the pick for names: engine expects option ids (names)
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.modal&&ui.modal.t!=='ded'){ui.modal=null;render()}});
+
+/* ส่งข้อเสนอแนะ (ตัวส่งจริงอยู่ที่ js/data/feedback-api.js) */
+async function sendFeedback(){
+  const f=ui.fb;if(f.busy)return;
+  if(f.text.trim().length<3){f.msg='กรุณาพิมพ์ข้อความอย่างน้อย 3 ตัวอักษร';return render()}
+  f.busy=true;f.msg='';render();
+  const website=(document.querySelector('[data-fb=website]')||{}).value||'';
+  try{
+    await AF.feedback.send({category:f.cat,text:f.text,name:f.name,contact:f.contact,website,
+      context:{หน้า:ui.screen==='game'?'ในเกม':ui.page==='mydecks'?'เด็คของฉัน':'ตั้งค่า',จอ:innerWidth+'x'+innerHeight,ภาษา:navigator.language||''}});
+    f.ok=true;f.text='';
+  }catch(e){f.msg=e.message}
+  f.busy=false;render();
+}
