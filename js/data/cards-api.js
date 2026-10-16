@@ -39,7 +39,7 @@ function normalizeApi(cards, decks, elements) {
     if (c.id && c.id !== c.deck + '-' + c.no) continue; // variants (เช่น SR) ใช้ตัวหลัก
     const t = {
       deck: c.deck, no: c.no, name: c.name, type: c.type, sub: c.sub, cost: c.cost, sc: c.sc, atk: c.atk, def: c.def ?? c.defense, cri: c.cri, tribe: c.tribe,
-      fx: (c.effects || []).map(e => [e.keyword || '', e.text || '']), fl: c.flavor || '', element: c.element, rarity: c.rarity, artist: c.artist, image: c.image || ''
+      fx: (c.effects || []).map(e => [e.keyword || '', e.text || '']), fl: c.flavor || '', element: c.element, elements: c.elements, rarity: c.rarity, artist: c.artist, image: c.image || ''
     };
     if (t.type === 'Spell' && !t.sub) t.sub = 'Enchant';
     C.push(t);

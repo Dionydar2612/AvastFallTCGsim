@@ -4,6 +4,7 @@
 globalThis.AF = globalThis.AF || {};
 AF.SNAPSHOT={
  "DECKS": {
+  "BT01": {"name": "BT01", "total": 122, "rot": "A", "el": "", "rar": "C", "art": "ChatGPT"},
   "SD01": {
    "name": "Storm Thunder",
    "total": 19,
@@ -46,6 +47,20 @@ AF.SNAPSHOT={
   }
  },
  "CARDS": [
+  {
+   "deck": "BT01",
+   "no": "001",
+   "name": "ผู้คุมไฟนรก ซาลอุน",
+   "type": "Avatar",
+   "tribe": "นรก / นักรบ",
+   "element": "ไฟ",
+   "elements": ["ไฟ", "มืด"],
+   "fx": [
+    ["AUTO", "Unit ฝ่ายคุณทุกใบสามารถประกาศโจมตีได้ แม้อยู่ในสภาพนอน"],
+    ["ACTIVATE 1/turn", "ส่งการ์ด 3 ใบบนสุดของ Main Deck ของคุณลงกองทิ้ง ทำลาย Unit ฝ่ายตรงข้าม 1 ใบที่มี Cost เท่ากับจำนวน Unit ที่ถูกส่งลงกองทิ้งด้วยเอฟเฟกต์นี้"]
+   ],
+   "fl": "“จงลุกโชกช่วง”"
+  },
   {
    "deck": "SD01",
    "no": "001",
