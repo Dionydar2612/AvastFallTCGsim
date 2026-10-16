@@ -37,7 +37,7 @@
 .dbx-empty{width:var(--cw);height:calc(var(--cw)*1.418);display:grid;place-items:center;border:2px dashed rgba(255,255,255,.7);border-radius:8px;color:#fff;font-weight:700;text-align:center;font-size:13px}
 
 /* แท็บ */
-.dbx-tabs{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.dbx-tabs{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
 .dbx-tab{display:grid;gap:0;justify-items:center;padding:5px 4px;border:0;background:transparent;font:600 12.5px/1.2 var(--f-body);color:var(--ink2);border-bottom:4px solid transparent}
 .dbx-tab+.dbx-tab{border-left:1.5px solid var(--soft)}
 .dbx-tab b{font:700 18px/1.2 var(--f-disp);color:var(--ink)}
