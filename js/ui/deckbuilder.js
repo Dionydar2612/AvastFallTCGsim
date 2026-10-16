@@ -1,4 +1,5 @@
 /* UI · หน้าสร้างเด็คแบบคลังการ์ด (ซ้าย) + กล่องเด็ค (ขวา)
+   - แถบ Unit / Spell / Ultimate / ALL กรองคลังการ์ดทางซ้าย (ตัวเลขบนแถบ = จำนวนในเด็ค) ส่วนรายการการ์ดในเด็คทางขวาแสดงทั้งหมด
    - ซ้าย: คลังการ์ดทั้งหมดจาก card-api (รวมชุด BT) ค้นหา/กรอง/เรียงได้ คลิกการ์ดเพื่อใส่ลงเด็ค
    - ขวา: คลิกกล่องเด็คเพื่อเลือก Avatar · แท็บ Unit / Spell / Ultimate · Element Deck (อยู่ใต้แท็บ)
    ไฟล์นี้แทนที่หน้าต่าง "สร้างเด็คของฉัน" เดิมใน modals.js (modalHTML ถูกครอบไว้ด้านล่าง)
@@ -7,7 +8,7 @@
    โหลดหลัง events.js และก่อน main.js */
 'use strict';
 (function () {
-  const TABS = [['Unit', 'Unit'], ['Spell', 'Spell'], ['Ultimate', 'Ultimate']];
+  const TABS = [['Unit', 'Unit'], ['Spell', 'Spell'], ['Ultimate', 'Ultimate'], ['ALL', 'ALL']];   // ALL = ทุกประเภท
   const tabOf = k => k === 'Unit' ? 'Unit' : k === 'Ultimate' ? 'Ultimate' : 'Spell';
   const KORD = { Unit: 0, Enchant: 1, Counter: 2, Equipment: 3, Domain: 4, Ultimate: 5 };
   const KINDS = ['Unit', 'Enchant', 'Counter', 'Equipment', 'Domain', 'Ultimate'];
@@ -26,7 +27,7 @@
 
   function dedHTML() {
     const e = ui.ed;
-    e.tab = e.tab || 'Unit'; e.sort = e.sort || 'id';
+    e.tab = e.tab || 'ALL'; e.sort = e.sort || 'id';
     const all = Object.values(AF.defs);
     const pool = all.filter(d => d.kind !== 'Avatar');
     const decksF = [...new Set(all.map(d => d.deck))].sort();
@@ -41,7 +42,7 @@
     /* ---------- คลังการ์ด (ซ้าย) ---------- */
     const q = (e.q || '').trim().toLowerCase();
     const lib = pool
-      .filter(d => (!e.fd || d.deck === e.fd) && (!e.ft || d.kind === e.ft) && (!e.fe || d.el === e.fe) && (!e.fin || (e.counts[d.id] || 0) > 0))
+      .filter(d => (e.tab === 'ALL' || tabOf(d.kind) === e.tab) && (!e.fd || d.deck === e.fd) && (!e.ft || d.kind === e.ft) && (!e.fe || d.el === e.fe) && (!e.fin || (e.counts[d.id] || 0) > 0))
       .sort(sorter(e.sort));
     const tiles = lib.map(d => {
       const n = e.counts[d.id] || 0;
@@ -59,9 +60,9 @@
     const errs = edErrors(e);
     const ed = edEdeck(e);
     const edTot = Object.values(ed).reduce((a, b) => a + b, 0);
-    const byTab = { Unit: 0, Spell: 0, Ultimate: 0 };
-    for (const [id, n] of Object.entries(e.counts)) { const d = AF.defs[id]; if (d) byTab[tabOf(d.kind)] += n; }
-    const mine = Object.keys(e.counts).filter(id => e.counts[id] > 0 && AF.defs[id] && tabOf(AF.defs[id].kind) === e.tab)
+    const byTab = { Unit: 0, Spell: 0, Ultimate: 0, ALL: 0 };
+    for (const [id, n] of Object.entries(e.counts)) { const d = AF.defs[id]; if (d) { byTab[tabOf(d.kind)] += n; byTab.ALL += n; } }
+    const mine = Object.keys(e.counts).filter(id => e.counts[id] > 0 && AF.defs[id])
       .map(id => AF.defs[id])
       .sort((x, y) => (KORD[x.kind] - KORD[y.kind]) || x.cost - y.cost || cmpId(x, y));
     const mini = mine.map(d => {
@@ -70,7 +71,7 @@
       return `<div class="mt-tile" title="${esc(d.name)}"><div class="card ${cardArt(d.id)}" data-pdef="${esc(d.id)}"><span class="cpill">${n}</span></div>
         <small class="nm">${esc(d.name)}</small>
         <div class="step"><button data-act="edc" data-id="${esc(d.id)}" data-d="-1" aria-label="ลด">−</button><button data-act="edc" data-id="${esc(d.id)}" data-d="1" ${full ? 'disabled' : ''} aria-label="เพิ่ม">+</button></div></div>`;
-    }).join('') || '<span class="muted">ยังไม่มีการ์ดในแท็บนี้ คลิกการ์ดทางซ้ายเพื่อใส่ลงเด็ค</span>';
+    }).join('') || '<span class="muted">ยังไม่มีการ์ดในเด็ค คลิกการ์ดทางซ้ายเพื่อใส่ลงเด็ค</span>';
 
     const box = `<button class="dbx-box" data-da="avopen" title="คลิกเพื่อเลือก Avatar" aria-label="เลือก Avatar">
         ${av ? `<div class="card ${cardArt(av.id)}"></div>` : '<div class="dbx-empty">เลือก<br>Avatar</div>'}
