@@ -55,9 +55,14 @@
 
 /* ส่วนล่าง */
 .dbx-bot{display:grid;gap:8px;border-top:2px solid var(--line);padding-top:8px}
-.dbx-el summary{cursor:pointer;font-weight:600;font-size:13px}
-.dbx-el .elst{grid-template-columns:1fr 1fr;gap:4px 10px;margin:6px 0}
-.dbx-el .btn{justify-self:start}
+/* Element Deck (ใต้แท็บ) */
+.dbx-el{display:grid;gap:5px;font-size:13px}
+.dbx-elh{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:600}
+.dbx-elg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 6px}
+.elc{display:flex;align-items:center;gap:3px;min-width:0;font-size:12px;font-weight:500}
+.elc span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.elc b{min-width:14px;text-align:center;font-family:var(--f-disp)}
+.elc button{width:22px;height:22px;padding:0;border-radius:6px;border:2px solid var(--line);background:var(--panel);font-weight:700;line-height:1}
 .dbx-bot .warnbox{max-height:70px;overflow:auto}
 .dbx-bot .acts{justify-content:flex-end}
 
