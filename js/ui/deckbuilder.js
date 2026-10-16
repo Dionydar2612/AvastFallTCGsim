@@ -1,6 +1,6 @@
 /* UI · หน้าสร้างเด็คแบบคลังการ์ด (ซ้าย) + กล่องเด็ค (ขวา)
    - ซ้าย: คลังการ์ดทั้งหมดจาก card-api (รวมชุด BT) ค้นหา/กรอง/เรียงได้ คลิกการ์ดเพื่อใส่ลงเด็ค
-   - ขวา: คลิกกล่องเด็คเพื่อเลือก Avatar · แท็บ Unit / Spell / Ultimate · Element Deck
+   - ขวา: คลิกกล่องเด็คเพื่อเลือก Avatar · แท็บ Unit / Spell / Ultimate · Element Deck (อยู่ใต้แท็บ)
    ไฟล์นี้แทนที่หน้าต่าง "สร้างเด็คของฉัน" เดิมใน modals.js (modalHTML ถูกครอบไว้ด้านล่าง)
    ใช้ actions เดิมจาก events.js: edc (เพิ่ม/ลดการ์ด) ede (Element) edeauto edsave edcancel
    และ data-chg="edf" (ตัวกรอง) ส่วน action ใหม่ใช้ data-da และจัดการในไฟล์นี้
@@ -78,9 +78,7 @@
 
     const tabs = TABS.map(([k, label]) => `<button class="dbx-tab ${e.tab === k ? 'on' : ''}" data-da="tab" data-v="${k}" role="tab" aria-selected="${e.tab === k}">${label}<b>${byTab[k]}</b></button>`).join('');
 
-    const elHTML = ELS.map(k => `<div class="step">${elIcon(k, 16)}<span>${esc(k)}</span><button data-act="ede" data-k="${esc(k)}" data-d="-1" aria-label="ลด ${esc(k)}">−</button><b>${ed[k] || 0}</b><button data-act="ede" data-k="${esc(k)}" data-d="1" aria-label="เพิ่ม ${esc(k)}">+</button></div>`).join('');
-
-    const fromHTML = `<label class="fl">เริ่มจากเด็ค<select data-chg="edfrom"><option value="">เลือกเพื่อคัดลอกการ์ดมาใส่…</option>${presetDecks().map(d => `<option value="preset:${esc(d.series)}">${esc(d.name)}</option>`).join('')}${ui.my.filter(d => d.id !== e.id).map(d => `<option value="my:${esc(d.id)}">${esc(d.name)} (ของฉัน)</option>`).join('')}</select></label>`;
+    const elHTML = ELS.map(k => `<div class="elc" title="${esc(k)}">${elIcon(k, 18)}<span>${esc(k)}</span><button data-act="ede" data-k="${esc(k)}" data-d="-1" aria-label="ลด ${esc(k)}">−</button><b>${ed[k] || 0}</b><button data-act="ede" data-k="${esc(k)}" data-d="1" aria-label="เพิ่ม ${esc(k)}">+</button></div>`).join('');
 
     /* ---------- หน้าต่างเลือก Avatar ---------- */
     let picker = '';
@@ -115,11 +113,10 @@
               <div class="dbx-total"><b>${tot}</b>/60 ${tot === 60 ? '<span class="good">ครบ</span>' : `<span class="bad">${tot < 60 ? 'ขาด ' + (60 - tot) : 'เกิน ' + (tot - 60)}</span>`}</div>
               <div class="dbx-bar"><i class="${tot === 60 ? 'ok' : tot > 60 ? 'over' : ''}" style="width:${Math.min(100, tot / 60 * 100)}%"></i></div>
               <span class="muted">Element Deck ${edTot}/8 ${edTot === 8 ? '<span class="good">✓</span>' : ''}</span></div></div>
-          <div class="dbx-tabs" role="tablist">${tabs}</div></div>
+          <div class="dbx-tabs" role="tablist">${tabs}</div>
+          <div class="dbx-el"><div class="dbx-elh"><span>Element Deck <b>${edTot}</b>/8 ${edTot === 8 ? '<span class="good">✓</span>' : ''}</span><button class="btn sm" data-act="edeauto">ตามธาตุ Avatar (8 ใบ)</button></div><div class="dbx-elg">${elHTML}</div></div></div>
         <div class="dbx-mini" data-ks="side">${mini}</div>
         <div class="dbx-bot">
-          <details class="dbx-el" open><summary>Element Deck <b>${edTot}</b>/8</summary><div class="elst">${elHTML}</div><button class="btn sm" data-act="edeauto">ตามธาตุ Avatar (8 ใบ)</button></details>
-          ${fromHTML}
           ${errs.length ? `<div class="warnbox">${errs.map(esc).join('<br>')}</div>` : '<div class="good">✓ เด็คถูกต้อง</div>'}
           <div class="acts"><button class="btn" data-act="edcancel">ยกเลิก</button><button class="btn pri" data-act="edsave">บันทึกเด็ค</button></div></div>
       </aside>${picker}</div></div>`;
