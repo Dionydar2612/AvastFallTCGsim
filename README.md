@@ -51,3 +51,10 @@ UI ไม่รู้เรื่องการดึงข้อมูล (อ
 1. push โฟลเดอร์นี้ขึ้น GitHub แล้วใช้ `render.yaml` ผ่าน Blueprint (หรือ New → Web Service: Runtime Node, Start command `node server.js`)
 2. ADMIN_KEY ถูกสุ่มให้ ดูได้ที่ Dashboard → Environment แล้วเปิด `https://<ชื่อ>.onrender.com/recommece?key=<ค่านั้น>`
 3. ถ้าเคยตั้งเป็น Static Site ไว้ ต้องสร้างเป็น Web Service ใหม่ (Static Site รันเซิร์ฟเวอร์ไม่ได้ ข้อเสนอแนะจะส่งไม่สำเร็จ)
+
+## กฎการจัดเด็คตามธาตุ Avatar
+- Avatar กำหนดธาตุของเด็ค ใส่ได้เฉพาะการ์ดธาตุนั้น (Avatar 2 สี เช่น BT01-001 ไฟ+มืด ใส่ได้ทั้งสองธาตุ) การ์ดที่ไม่ระบุธาตุใส่ได้ทุกเด็ค
+- Unit ลงสนามต้องจ่าย Element ตรงสีของ Unit · Spell/Enchant/Equipment/Domain/Ultimate จ่ายตาม Cost ด้วย Element สีอะไรก็ได้ · ถ้าการ์ดไม่ระบุธาตุ จ่ายด้วยสีอะไรก็ได้
+- หน้าสร้างเด็คจะทำการ์ดที่ธาตุไม่ตรงให้จางและเพิ่มไม่ได้ และ `AF.validateDeck` แจ้งข้อผิดพลาดถ้าเด็คที่นำเข้ามีการ์ดผิดธาตุ
+- Element Deck เริ่มต้น 8 ใบ: Avatar 2 สีแบ่งครึ่ง 4/4
+- ข้อมูลการ์ดหลายธาตุใช้ฟิลด์ `elements: ["ไฟ","มืด"]` (`element` = ธาตุแรกไว้แสดงไอคอน)
