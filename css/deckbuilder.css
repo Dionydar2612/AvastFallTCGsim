@@ -86,3 +86,6 @@
   .dbx-mini{max-height:none;overflow:visible}
   .dbx-pick{position:fixed;inset:0;border-radius:0;z-index:60}
 }
+
+/* การ์ดที่ธาตุไม่ตรง Avatar: จางลง ใส่ไม่ได้ */
+.pt.offel .card{filter:grayscale(.85) brightness(.7);opacity:.55}
