@@ -31,7 +31,7 @@
     const all = Object.values(AF.defs);
     const pool = all.filter(d => d.kind !== 'Avatar');
     const decksF = [...new Set(all.map(d => d.deck))].sort();
-    const els = [...new Set(all.map(d => d.el).filter(Boolean))];
+    const els = [...new Set(all.flatMap(d => d.els || []))];
     const ELS = Object.keys(ELEMENTS);
     const av = AF.defs[e.avatar];
 
@@ -42,16 +42,17 @@
     /* ---------- คลังการ์ด (ซ้าย) ---------- */
     const q = (e.q || '').trim().toLowerCase();
     const lib = pool
-      .filter(d => (e.tab === 'ALL' || tabOf(d.kind) === e.tab) && (!e.fd || d.deck === e.fd) && (!e.ft || d.kind === e.ft) && (!e.fe || d.el === e.fe) && (!e.fin || (e.counts[d.id] || 0) > 0))
+      .filter(d => (e.tab === 'ALL' || tabOf(d.kind) === e.tab) && (!e.fd || d.deck === e.fd) && (!e.ft || d.kind === e.ft) && (!e.fe || (d.els || []).includes(e.fe)) && (!e.fin || (e.counts[d.id] || 0) > 0))
       .sort(sorter(e.sort));
     const tiles = lib.map(d => {
       const n = e.counts[d.id] || 0;
       const hay = (d.name + ' ' + d.id + ' ' + d.tribe).toLowerCase();
       const hid = q && !hay.includes(q);
-      const full = (nameCount[d.name] || 0) >= 4;
-      return `<div class="pt ${n ? 'in' : ''} ${full ? 'full' : ''}" ${hid ? 'hidden' : ''} data-q="${esc(hay)}">
+      const bad = av && !AF.allowedInDeck(av, d);
+      const full = (nameCount[d.name] || 0) >= 4 || bad;
+      return `<div class="pt ${n ? 'in' : ''} ${full ? 'full' : ''} ${bad ? 'offel' : ''}" ${bad ? `title="ธาตุ${esc(d.els.join('/'))} ใส่ไม่ได้: Avatar เป็นธาตุ${esc(av.els.join('/') || 'ไม่ระบุ')}"` : ''} ${hid ? 'hidden' : ''} data-q="${esc(hay)}">
         <div class="card ${cardArt(d.id)}" data-pdef="${esc(d.id)}" data-act="edc" data-id="${esc(d.id)}" data-d="1" role="button" aria-label="เพิ่ม ${esc(d.name)}">${n ? `<span class="cpill">${n}</span>` : ''}</div>
-        <small class="nm">${esc(d.name)}</small><small class="mt">${meta(d)}</small>${tags(d)}
+        <small class="nm">${esc(d.name)}</small><small class="mt">${elIcons(d, 12)} ${meta(d)}</small>${bad ? '<small class="tg warn">ธาตุไม่ตรง Avatar</small>' : ''}${tags(d)}
         <div class="step"><button data-act="edc" data-id="${esc(d.id)}" data-d="-1" ${n ? '' : 'disabled'} aria-label="ลด">−</button><b>${n}</b><button data-act="edc" data-id="${esc(d.id)}" data-d="1" ${full ? 'disabled' : ''} aria-label="เพิ่ม">+</button></div></div>`;
     }).join('') || '<span class="muted">ไม่พบการ์ดตามตัวกรอง</span>';
 
@@ -89,7 +90,7 @@
       const avTiles = avs.map(d => {
         const hay = (d.name + ' ' + d.id + ' ' + d.tribe).toLowerCase();
         return `<button class="dbx-av ${e.avatar === d.id ? 'on' : ''}" data-da="avpick" data-id="${esc(d.id)}" ${aq && !hay.includes(aq) ? 'hidden' : ''} data-q="${esc(hay)}">
-          <div class="card ${cardArt(d.id)}" data-pdef="${esc(d.id)}"></div><b>${esc(d.name)}</b><small class="mt">${elIcon(d.el, 13)} ${esc(d.id)}</small>${tags(d)}</button>`;
+          <div class="card ${cardArt(d.id)}" data-pdef="${esc(d.id)}"></div><b>${esc(d.name)}</b><small class="mt">${elIcons(d, 13)} ${esc(d.id)}</small>${tags(d)}</button>`;
       }).join('') || '<span class="muted">ไม่พบ Avatar</span>';
       picker = `<div class="dbx-pick" role="dialog" aria-label="เลือก Avatar"><div class="dbx-pick-h"><h2>เลือก Avatar</h2>
         <input id="avq" type="search" placeholder="ค้นหาชื่อ / รหัส" value="${esc(e.avq || '')}" aria-label="ค้นหา Avatar">
@@ -110,7 +111,7 @@
           <label class="fl dbx-name">ชื่อเด็ค<input id="edname" type="text" maxlength="40" value="${esc(e.name)}"></label>
           <div class="dbx-head">${box}
             <div class="dbx-info"><b class="dbx-av-name">${av ? esc(av.name) : 'ยังไม่ได้เลือก Avatar'}</b>
-              ${av ? `<span class="muted">${elIcon(av.el, 13)} ${esc(av.id)}</span>` : ''}
+              ${av ? `<span class="muted">${elIcons(av, 13)} ${esc(av.id)}</span>` : ''}
               <div class="dbx-total"><b>${tot}</b>/60 ${tot === 60 ? '<span class="good">ครบ</span>' : `<span class="bad">${tot < 60 ? 'ขาด ' + (60 - tot) : 'เกิน ' + (tot - 60)}</span>`}</div>
               <div class="dbx-bar"><i class="${tot === 60 ? 'ok' : tot > 60 ? 'over' : ''}" style="width:${Math.min(100, tot / 60 * 100)}%"></i></div>
               <span class="muted">Element Deck ${edTot}/8 ${edTot === 8 ? '<span class="good">✓</span>' : ''}</span></div></div>

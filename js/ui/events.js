@@ -104,7 +104,7 @@ function handle(act,d,el,e){
       ui.modal=r.warns.length?{t:'dimport',text:txt,warns:['นำเข้าแล้ว แต่มีบางบรรทัดถูกข้าม:',...r.warns]}:null;return render()}
     case 'copytxt':{const ta=document.getElementById('dtxt');if(!ta)return;ta.focus();ta.select();let ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).catch(()=>{});ok=true}}catch(e){}try{ok=document.execCommand('copy')||ok}catch(e){}el.textContent=ok?'คัดลอกแล้ว ✓':'เลือกข้อความไว้แล้ว กด Ctrl+C';return}
     case 'playas':{ui.cfg.sel[+d.p]='my:'+d.id;saveCfg();ui.page='play';return render()}
-    case 'edc':{const e=ui.ed;if(!e)return;const df=AF.defs[d.id];if(!df)return;let n=(e.counts[d.id]||0)+ +d.d;if(+d.d>0){const tot=Object.entries(e.counts).reduce((a,[i,c])=>a+(AF.defs[i]&&AF.defs[i].name===df.name?c:0),0);if(tot>=4)return}n=Math.max(0,Math.min(4,n));if(n)e.counts[d.id]=n;else delete e.counts[d.id];return render()}
+    case 'edc':{const e=ui.ed;if(!e)return;const df=AF.defs[d.id];if(!df)return;let n=(e.counts[d.id]||0)+ +d.d;if(+d.d>0){const av=AF.defs[e.avatar];if(av&&!AF.allowedInDeck(av,df))return;const tot=Object.entries(e.counts).reduce((a,[i,c])=>a+(AF.defs[i]&&AF.defs[i].name===df.name?c:0),0);if(tot>=4)return}n=Math.max(0,Math.min(4,n));if(n)e.counts[d.id]=n;else delete e.counts[d.id];return render()}
     case 'edav':{const e=ui.ed;e.avatar=d.id;if(e.edeckAuto)e.edeck=null;return render()}
     case 'ede':{const e=ui.ed;const cur=Object.assign({},edEdeck(e));const v=Math.max(0,(cur[d.k]||0)+ +d.d);if(v)cur[d.k]=v;else delete cur[d.k];e.edeck=cur;e.edeckAuto=false;return render()}
     case 'edeauto':{const e=ui.ed;e.edeck=null;e.edeckAuto=true;return render()}

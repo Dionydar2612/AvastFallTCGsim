@@ -11,7 +11,7 @@ function navHTML(){
 }
 function deckTile(d,i,on){
   const bad=deckErrors(d.key).length;
-  return `<button class="dk ${on?'on':''}" data-act="sel" data-p="${i}" data-k="${esc(d.key)}"><div class="art im-${artKey(d.avatar)}"></div><div class="nm"><b>${esc(d.name)}</b><span class="muted">${d.preset?esc(d.series)+' · ':'เด็คของฉัน · '}${elIcon((AF.defs[d.avatar]||{}).el,13)}</span>${bad?'<span class="bad">⚠ ยังไม่ครบ</span>':''}</div></button>`;
+  return `<button class="dk ${on?'on':''}" data-act="sel" data-p="${i}" data-k="${esc(d.key)}"><div class="art im-${artKey(d.avatar)}"></div><div class="nm"><b>${esc(d.name)}</b><span class="muted">${d.preset?esc(d.series)+' · ':'เด็คของฉัน · '}${elIcons(AF.defs[d.avatar])}</span>${bad?'<span class="bad">⚠ ยังไม่ครบ</span>':''}</div></button>`;
 }
 function setupHTML(){
   const c=ui.cfg;

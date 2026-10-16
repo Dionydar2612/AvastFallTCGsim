@@ -20,7 +20,7 @@ function newEd(base,forP){
   const av=base?base.avatar:(defs.find(d=>d.kind==='Avatar')||{}).id;
   return {id:base&&base.id||null,name:base?base.name:'เด็คใหม่',avatar:av,counts:Object.assign({},base?base.counts:{}),edeck:base&&base.edeck?Object.assign({},base.edeck):null,edeckAuto:!(base&&base.edeck),fd:'',ft:'',fe:'',fin:false,q:'',forP};
 }
-function edEdeck(e){return e.edeck||(()=>{const a=AF.defs[e.avatar];const o={};if(a)o[a.el]=8;return o})()}
+function edEdeck(e){return e.edeck||AF.defaultEdeck(AF.defs[e.avatar])}
 function edErrors(e){return AF.validateDeck({avatar:e.avatar,counts:e.counts,edeck:edEdeck(e)})}
 function deckToText(d){
   const L=['# '+d.name,'Avatar '+d.avatar];
