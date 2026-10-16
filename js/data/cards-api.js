@@ -17,6 +17,8 @@ const DEFAULT_API = 'https://avastfalltcglist.onrender.com';
 const CACHE_KEY = 'af-cards-cache';
 
 const cid = c => c.deck + '-' + c.no;
+/* ชุดที่ขึ้นต้นด้วย BT (BT01, BT02, ...) ไม่แสดงเป็นเด็คตัวอย่าง แต่ยังเลือกใส่เด็คตัวเองได้ในหน้าสร้างเด็ค */
+const NO_PRESET = /^BT/i;
 const sigOf = c => [c.name, c.type, c.sub || '', c.cost ?? c.sc ?? '', c.atk ?? '', c.def ?? c.defense ?? '', c.cri ?? '', c.tribe || '', JSON.stringify(c.fx || [])].join('|');
 
 /* ---------------------------------------------------------------- snapshot (ข้อความที่สคริปต์เขียนไว้) */
@@ -82,7 +84,7 @@ D.imageUrl = def => {
 D.apply = raw => {
   D.raw = raw;
   AF.loadData(raw);
-  D.series = Object.keys(raw.DECKS).filter(s => Object.values(AF.defs).some(d => d.deck === s && d.kind === 'Avatar'));
+  D.series = Object.keys(raw.DECKS).filter(s => !NO_PRESET.test(s) && Object.values(AF.defs).some(d => d.deck === s && d.kind === 'Avatar'));
   D.live = {};
   for (const c of raw.CARDS) {
     if (c.key && c.key !== cid(c)) continue;
