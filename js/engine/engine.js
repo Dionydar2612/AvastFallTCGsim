@@ -555,13 +555,14 @@ H.cancel = (G, it) => { if (it) { it.cancelled = true; } };
 
 /* ---------------------------------------------------------------- abilities */
 const kindByZone = { field: 'unit-ability', discard: 'unit-ability', hand: 'unit-ability', avatar: 'avatar-ability', equip: 'equip-ability', domain: 'domain-ability' };
-async function runAbility(G, p, card, ab, kind, label) {
-  const ctx = { G, p, self: card, ab };
+/* via = Unit ที่สั่งใช้ความสามารถนี้ซ้ำ (เช่น ฮัสซัน ร้อยหน้า): "การ์ดนี้/Unit นี้" ในข้อความความสามารถ = via ไม่ใช่เจ้าของข้อความ */
+async function runAbility(G, p, card, ab, kind, label, via = null) {
+  const ctx = { G, p, self: card, ab, via };
   let tg = null;
   if (ab.targets) { tg = await ab.targets(ctx); if (tg === undefined || tg === false) return false; }
   if (ab.optional) { const yes = await H.yesNo(G, p, `ใช้ความสามารถ ${label || ''} ของ ${card.def.name}?`); if (!yes) return false; }
   log(G, `${G.players[p].name} ใช้ ${label || 'ความสามารถ'} ของ ${card.def.name}`, p, { ability: card.uid });
-  const item = { kind: kind || 'unit-ability', controller: p, source: card, label: `${label || ''} ${card.def.name}`.trim(), resolve: async (it) => { await ab.resolve({ G, p, self: card, item: it }, tg); if (ab.prophecy) { /* handled in resolve */ } } };
+  const item = { kind: kind || 'unit-ability', controller: p, source: via || card, label: `${label || ''} ${card.def.name}`.trim(), resolve: async (it) => { await ab.resolve({ G, p, self: card, via, item: it }, tg); if (ab.prophecy) { /* handled in resolve */ } } };
   await runChain(G, item);
   return true;
 }
