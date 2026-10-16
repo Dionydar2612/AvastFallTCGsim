@@ -1,5 +1,6 @@
 /* UI · หน้า "วิธีเล่น" (สอนเล่นตั้งแต่ต้น: การ์ดคืออะไร สนามมีอะไร เล่นการ์ดยังไง และ Keyword ทั้งหมด)
-   - ภาพประกอบเป็น SVG ในไฟล์นี้ (ไม่ต้องใช้รูปภายนอก) ใช้สีตามธีมสว่าง/มืดของหน้าเว็บ
+   - ภาพประกอบแผนผังเป็น SVG ในไฟล์นี้ ใช้สีตามธีมสว่าง/มืดของหน้าเว็บ
+   ภาพการ์ดตัวอย่าง 4 ใบ (Avatar, Unit, Enchant, Ultimate) อยู่ที่ assets/guide/card-*.jpg (เรนเดอร์จาก BT01.pdf)
    - ตัวอย่างการ์ดจริงใช้รูปจาก card-api ผ่าน class cardArt() ถ้ารูปโหลดไม่ได้จะเห็นลายหลังการ์ดแทน
      และเอาเมาส์ชี้ (หรือแตะ) การ์ดตัวอย่างเพื่อดูการ์ดเต็มได้
    - ใส่ลิงก์วิดีโอสอนเล่นที่ TUTORIAL_VIDEO ได้ (ไฟล์ .mp4/.webm หรือลิงก์ YouTube embed) เว้นว่าง = ไม่แสดง
@@ -34,6 +35,14 @@ const GUIDE_CSS=`
 .sv-line{fill:none;stroke:var(--line);stroke-width:2.2}
 .sv-arrow{fill:none;stroke:var(--ink);stroke-width:2.5;marker-end:url(#gd-ah)}
 .sv-bar{fill:var(--soft)}
+.gd-cardx{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:8px 18px;align-items:start;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.gd-cardx>h3{grid-column:1/-1;margin:0;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gd-cardx>p{grid-column:1/-1}
+@media (max-width:760px){.gd-cardx{grid-template-columns:1fr}.gd-cimg{max-width:320px}}
+.gd-cimg{position:relative;width:100%}
+.gd-cimg img{display:block;width:100%;height:auto;border-radius:10px;border:2px solid var(--line);cursor:help}
+.gd-cimg i{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:var(--coral);color:#fff;font:700 12px var(--f-body);font-style:normal;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--line);pointer-events:none}
+.gd-thumb{width:100px;height:auto;border-radius:8px;border:2px solid var(--line);cursor:help;display:block}
 .gd-fig{display:grid;gap:6px;margin:6px 0}
 .gd-fig figcaption{font-size:12.5px;color:var(--ink2)}
 .gd-split{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:16px;align-items:start}
@@ -97,30 +106,77 @@ const gm=(x,y,n)=>`<circle cx="${x}" cy="${y}" r="11" class="sv-coral"/><text x=
 const GD_DEFS=`<defs><marker id="gd-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--ink)"/></marker></defs>`;
 function legend(items){return `<ol class="gd-legend">${items.map(([a,b],i)=>`<li><i>${i+1}</i><div><b>${a}</b>${b}</div></li>`).join('')}</ol>`}
 
-/* ------------------------------------------------------------------ ภาพประกอบ (SVG) */
-/* โครงการ์ด Unit พร้อมป้ายหมายเลข */
-function svgCardAnatomy(){
-  return `<svg class="gd-svg" style="max-width:330px" viewBox="0 0 320 400" role="img" aria-label="ส่วนประกอบของการ์ด Unit">${GD_DEFS}
-  <rect x="20" y="10" width="260" height="380" rx="14" class="sv-card"/>
-  <rect x="32" y="22" width="236" height="40" rx="8" class="sv-soft"/>
-  <text x="84" y="48" class="b" style="font-size:15px">ชื่อการ์ด</text>
-  <circle cx="52" cy="42" r="15" class="sv-teal2"/><text x="52" y="47" text-anchor="middle" class="tw b" style="font-size:15px">2</text>
-  <rect x="34" y="72" width="232" height="126" rx="8" class="sv-teal"/>
-  <path d="M50 186l50-62 34 40 28-30 70 52z" class="sv-soft"/><circle cx="214" cy="104" r="12" class="sv-gold"/>
-  <text x="150" y="98" text-anchor="middle" class="t2" style="font-size:12px">ภาพการ์ด</text>
-  <rect x="32" y="206" width="236" height="24" rx="6" class="sv-soft"/>
-  <text x="44" y="223" style="font-size:12px"><tspan class="b">Unit</tspan> · เผ่า / เผ่าย่อย</text>
-  <rect x="32" y="238" width="236" height="76" rx="8" class="sv-card"/>
-  <rect x="42" y="246" width="62" height="17" rx="5" class="sv-teal2"/><text x="73" y="259" text-anchor="middle" class="tw b" style="font-size:11px">ADVENT</text>
-  <rect x="42" y="271" width="214" height="6" rx="3" class="sv-bar"/><rect x="42" y="283" width="190" height="6" rx="3" class="sv-bar"/><rect x="42" y="295" width="150" height="6" rx="3" class="sv-bar"/>
-  <text x="42" y="330" class="t2" style="font-size:11px;font-style:italic">“คำพูดประกอบการ์ด…”</text>
-  <circle cx="84" cy="362" r="19" class="sv-coral"/><text x="84" y="360" text-anchor="middle" class="tw b" style="font-size:15px">3</text><text x="84" y="374" text-anchor="middle" class="tw" style="font-size:9px">ATK</text>
-  <circle cx="140" cy="362" r="19" class="sv-teal2"/><text x="140" y="360" text-anchor="middle" class="tw b" style="font-size:15px">2</text><text x="140" y="374" text-anchor="middle" class="tw" style="font-size:9px">DEF</text>
-  <circle cx="196" cy="362" r="19" class="sv-gold"/><text x="196" y="360" text-anchor="middle" class="b" style="font-size:15px">1</text><text x="196" y="374" text-anchor="middle" style="font-size:9px">CRI</text>
-  <text x="262" y="382" text-anchor="end" class="t2" style="font-size:9px">SD01-004</text>
-  ${gm(300,42,1)}${gm(13,42,2)}${gm(300,135,3)}${gm(300,218,4)}${gm(300,276,5)}${gm(300,362,6)}${gm(13,326,7)}
-  </svg>`;
+/* ภาพการ์ดจริง (เรนเดอร์จาก BT01.pdf) + ป้ายเลขวางบนภาพ
+   marks = [[x%, y%], ...] ตำแหน่งป้ายแต่ละเลข (เปอร์เซ็นต์ของความกว้าง/ความสูงภาพ) เรียงตามรายการคำอธิบาย
+   ถ้าเปลี่ยนภาพการ์ด ปรับตัวเลขตำแหน่งในรายการ GUIDE_CARDS ด้านล่างได้เลย */
+const GUIDE_IMG='assets/guide/';
+function gthumb(file,pdef,alt){return `<img class="gd-thumb" src="${GUIDE_IMG}${file}" data-pdef="${esc(pdef)}" alt="${esc(alt)}" width="720" height="1018" loading="lazy">`}
+function cardx(c){
+  return `<div class="gd-cardx"><h3>${c.title}</h3><p>${c.intro}</p>
+    <div class="gd-cimg"><img src="${GUIDE_IMG}${c.file}" data-pdef="${esc(c.pdef)}" alt="${esc(c.alt)}" width="720" height="1018" loading="lazy">${c.marks.map(([x,y],i)=>`<i style="left:${x}%;top:${y}%">${i+1}</i>`).join('')}</div>
+    ${legend(c.items)}</div>`;
 }
+const GUIDE_CARDS=[
+  {title:'Avatar <span class="gd-tag">ตัวแทนของคุณ</span>',file:'card-avatar.jpg',pdef:'SD02-001',alt:'การ์ด Avatar: ธอธ ผู้รักษาภูมิปัญญา',
+   intro:'ตัวอย่าง: ธอธ ผู้รักษาภูมิปัญญา (SD02-001) Avatar ไม่มีค่า Cost, ATK, DEF หรือ CRI เพราะไม่ได้ลงสนามไปโจมตี แต่เป็นตัวที่ถ้า HP หมดคุณแพ้',
+   marks:[[74,3],[16,9],[50,30],[3.5,46.8],[30,51],[3.5,64],[92,88.4],[45,97.8]],
+   items:[
+    ['ป้ายประเภท AVATAR','บอกว่าเป็น Avatar แต่ละเด็คมี 1 ใบ ไม่อยู่ในมือหรือ Main Deck แต่วางอยู่ที่ช่อง Avatar ตลอดเกม ในเกมนี้ Avatar เริ่มที่ HP 10 (ไม่ได้พิมพ์บนการ์ด)'],
+    ['ธาตุ','ธาตุประจำการ์ด ในภาพคือธาตุพืช'],
+    ['ภาพการ์ด','ชี้ที่การ์ดบนสนามเพื่อดูใบเต็มได้ตลอดเกม'],
+    ['ข้อความประกอบ (แถบสีเขียว)','คำพูดหรือเรื่องราวของตัวละคร ไม่มีผลต่อเกม'],
+    ['เผ่า [ … ]','ข้อความในวงเล็บเหลี่ยมคือเผ่า เอฟเฟกต์ของการ์ดอื่นอ้างถึงได้'],
+    ['ความสามารถ','Avatar มีได้หลายความสามารถ นำหน้าด้วย Keyword ในภาพมี AUTO (ทำงานต่อเนื่อง ไม่ต้องกดใช้) และ ACTIVATE 1/turn (คุณกดใช้เอง เทิร์นละครั้ง)'],
+    ['ชื่อ Avatar','อยู่ที่แถบสีเขียวด้านล่างของการ์ด'],
+    ['รหัสการ์ด','SD02 … 001/019 คือชุด SD02 ใบที่ 1 จากทั้งหมด 19 ใบ ถัดมาเป็นเครดิตภาพ']
+   ]},
+  {title:'Unit <span class="gd-tag">ลง Action Zone</span>',file:'card-unit.jpg',pdef:'SD02-002',alt:'การ์ด Unit: อาลักษณ์แห่งบันทึกศักดิ์สิทธิ์',
+   intro:'ตัวอย่าง: อาลักษณ์แห่งบันทึกศักดิ์สิทธิ์ (SD02-002) Unit คือการ์ดที่มีข้อมูลครบที่สุด มีทั้ง Cost, CRI, ATK และ DEF',
+   marks:[[17,5],[13,15],[88,19],[50,30],[25,44.4],[92,51.6],[40,59.4],[95,72],[3.5,91.5],[95,83],[42,97.5]],
+   items:[
+    ['COST (วงกลมมุมซ้ายบน)','จำนวน Element ที่ต้องจ่ายเพื่อ Invite (อัญเชิญ) Unit ใบนี้ลงสนาม ในภาพคือ 1'],
+    ['ธาตุ','ต้องจ่าย Cost ด้วย Element ธาตุนี้เท่านั้น (ธาตุเดียวกับ Unit)'],
+    ['CRI (ป้ายมุมขวาบน)','ดาเมจที่ทำกับ HP ของ Avatar เมื่อ Unit ใบนี้โจมตี Avatar สำเร็จ ใบนี้เป็น 0 จึงไม่ทำให้ HP ลด'],
+    ['ภาพการ์ด','ชี้ที่การ์ดเพื่อดูใบเต็มได้'],
+    ['ป้ายประเภท UNIT','บอกว่าเป็น Unit ลงได้ที่ Action Zone'],
+    ['ชื่อการ์ด','อยู่ใต้ภาพ ใช้อ้างอิงในเอฟเฟกต์ และเด็คใส่ชื่อซ้ำได้ไม่เกิน 4 ใบ'],
+    ['เผ่า [ … ]','ในภาพคือ “อาลักษณ์” เอฟเฟกต์ของการ์ดอื่นอ้างถึงได้ เช่น Avatar ธอธที่เปิดเจอเผ่านี้แล้วจั่วการ์ด'],
+    ['ความสามารถ','นำหน้าด้วย Keyword บอกว่าทำงานตอนไหน ในภาพมี ADVENT (ทำงานตอนลงสนาม) และ ACTIVATE 1/turn (กดใช้เอง เทิร์นละครั้ง)'],
+    ['ข้อความประกอบ','คำพูดหรือเรื่องราว ไม่มีผลต่อเกม'],
+    ['ATK / DEF (มุมขวาล่าง)','ตัวเลขซ้ายคือ ATK พลังโจมตี ตัวเลขขวาคือ DEF พลังป้องกัน ในภาพคือ ATK 1 / DEF 3 ถ้า ATK ของผู้โจมตีมากกว่าหรือเท่ากับ DEF ของเป้า เป้าถูกทำลาย'],
+    ['รหัสการ์ด','ชุดและลำดับของการ์ด']
+   ]},
+  {title:'Spell · Enchant <span class="gd-tag">ลง Magic Area</span>',file:'card-enchant.jpg',pdef:'SD02-010',alt:'การ์ด Enchant: อ่านสิ่งที่ซ่อนอยู่ระหว่างบรรทัด',
+   intro:'ตัวอย่าง: อ่านสิ่งที่ซ่อนอยู่ระหว่างบรรทัด (SD02-010) Spell ไม่มีวงกลม COST และไม่มี ATK/DEF/CRI ค่าใช้จ่ายอยู่ในบรรทัด SpellCost ในกล่องข้อความ',
+   marks:[[93,8.5],[14,17],[50,35],[46,51.2],[38,57],[60,61.2],[3,70],[90,88.4],[48,97.8]],
+   items:[
+    ['ชื่อการ์ด','Spell วางชื่อไว้ที่แถบสีขาวด้านบน (Avatar, Unit และ Ultimate วางชื่อไว้ด้านล่าง)'],
+    ['ธาตุ','ธาตุของการ์ด แต่ Spell จ่ายค่าใช้จ่ายด้วย Element ธาตุไหนก็ได้'],
+    ['ภาพการ์ด','ชี้ที่การ์ดเพื่อดูใบเต็มได้'],
+    ['ป้ายชนิด SPELL | ENCHANT','SPELL คือกลุ่มใหญ่ ส่วนช่องที่สองคือชนิดย่อย ได้แก่ Enchant, Counter, Equipment และ Domain'],
+    ['กลุ่ม [ … ]','คล้ายเผ่าของ Unit ในภาพคือ “อักขระเวทมนตร์” เอฟเฟกต์ของการ์ดอื่นอ้างถึงได้'],
+    ['SpellCost','ค่าใช้จ่ายของ Spell “Spend 1 Element” คือใช้ Element ธาตุไหนก็ได้ที่ตั้งอยู่ 1 ใบ (Equipment ใช้ EquipCost, Domain ใช้ CastCost)'],
+    ['ผลของการ์ด','ใบนี้ลดค่าใช้จ่าย Spell ของคุณลง 1 Element และวางค้างไว้ที่ “Spell Zone” ซึ่งในเกมนี้คือช่อง Magic Area (3 ช่อง) เมื่อจบเทิร์นฝ่ายตรงข้ามต้องทิ้งการ์ดใบนี้และการ์ดบนมืออีก 2 ใบ ถ้าทำไม่ได้จะเสียพลังชีวิต 2 หน่วย'],
+    ['ข้อความประกอบ','อยู่ในช่องสีขาวล่างสุด ไม่มีผลต่อเกม'],
+    ['รหัสการ์ด','ชุดและลำดับของการ์ด']
+   ]},
+  {title:'Ultimate <span class="gd-tag">ใช้ใน Ultimate Phase</span>',file:'card-ultimate.jpg',pdef:'SD02-019',alt:'การ์ด Ultimate: การพิพากษาครั้งสุดท้ายของเทพธอธ',
+   intro:'ตัวอย่าง: การพิพากษาครั้งสุดท้ายของเทพธอธ (SD02-019) โครงเหมือน Avatar แต่เป็นไม้ตายบนมือ ไม่มี Cost, ATK, DEF หรือ CRI ค่าใช้จ่ายอยู่ในบรรทัด CastCost',
+   marks:[[72,3],[16,9],[50,30],[3.5,46.8],[32,51],[60,56],[3,66],[93,88.6],[48,97.8]],
+   items:[
+    ['ป้ายประเภท Ultimate','ไม้ตายที่เล่นจากมือ ใช้ได้เฉพาะ Ultimate Phase (หลัง Attack Phase)'],
+    ['ธาตุ','ธาตุของการ์ด'],
+    ['ภาพการ์ด','ชี้ที่การ์ดเพื่อดูใบเต็มได้'],
+    ['ข้อความประกอบ (แถบสีเขียว)','คำพูดหรือเรื่องราว ไม่มีผลต่อเกม'],
+    ['กลุ่ม [ … ]','ในภาพคือ “ปรากฏการณ์” เอฟเฟกต์ของการ์ดอื่นอ้างถึงได้'],
+    ['CastCost','ค่าใช้จ่ายของ Ultimate “Spend 3 Element” คือต้องมี Element ตั้งอยู่ 3 ใบ ซึ่งสูงกว่า Spell ทั่วไป'],
+    ['ความสามารถ','ไม้ตายบางใบมี Keyword ตามข้อความ ใบนี้มี Counter คือผลจะแรงขึ้นตามจำนวนครั้งที่คุณใช้ Counter สำเร็จในเทิร์นนี้ และใช้ยกเลิกผลของ Ultimate ฝ่ายตรงข้ามได้'],
+    ['ชื่อการ์ด','อยู่ที่แถบสีเขียวด้านล่าง'],
+    ['รหัสการ์ด','ชุดและลำดับของการ์ด']
+   ]}
+];
+
+/* ------------------------------------------------------------------ ภาพประกอบ (SVG) */
 /* กระดานฝั่งของคุณ */
 function svgBoard(){
   const slot=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" class="sv-slot"/>`;
@@ -330,29 +386,21 @@ function guideHTML(){
   </section>
 
   <section class="gd" id="gd-card"><h2>3. การ์ดหนึ่งใบมีอะไรบ้าง</h2>
-    <p>ตัวอย่างข้างล่างคือการ์ด Unit ชนิดที่พบบ่อยที่สุด ชนิดอื่นมีข้อมูลน้อยกว่านี้ (ดูหัวข้อถัดไป) ตำแหน่งจริงบนการ์ดอาจต่างเล็กน้อยตามดีไซน์ แต่ข้อมูลชุดเดียวกัน</p>
-    <figure class="gd-fig"><div class="gd-split">${svgCardAnatomy()}
-    ${legend([
-      ['ชื่อการ์ด','ใช้อ้างอิงในเอฟเฟกต์ เช่น “Unit ที่ชื่อ …” และเด็คใส่ชื่อซ้ำได้ไม่เกิน 4 ใบ'],
-      ['Cost และธาตุ','จำนวน Element ที่ต้องจ่ายเพื่อ Invite (อัญเชิญ) Unit ต้องเป็นธาตุเดียวกับ Unit ใบนั้นเท่านั้น Spell จะใช้ “Spell Cost” แทน และจ่ายด้วยธาตุไหนก็ได้'],
-      ['ภาพการ์ด','ชี้ที่การ์ดบนสนามหรือบนมือเพื่อดูการ์ดใบเต็มได้ตลอดเกม'],
-      ['ชนิด · เผ่า','ชนิดบอกว่าเล่นยังไง (Unit, Enchant, Equipment ฯลฯ) ส่วนเผ่า เช่น มนุษย์ สัตว์ เทพเจ้า มีเอฟเฟกต์ของการ์ดอื่นอ้างถึง'],
-      ['ช่องความสามารถ','แต่ละความสามารถนำหน้าด้วย Keyword เช่น ADVENT, ACTIVATE, AUTO บอกว่าทำงานตอนไหน อ่านความหมายได้ในหัวข้อ 11'],
-      ['ATK / DEF / CRI','ATK = พลังโจมตี เทียบกับ DEF ของเป้า · DEF = พลังป้องกัน · CRI = ดาเมจที่ทำกับ Avatar เมื่อโจมตีสำเร็จ'],
-      ['ข้อความประกอบและรหัส','คำพูดประกอบไม่มีผลต่อเกม ส่วนรหัส เช่น SD01-004 บอกชุดและลำดับของการ์ด']
-    ])}</div><figcaption>ภาพอธิบายการ์ด Unit หนึ่งใบ ตัวเลขในวงกลมตรงกับรายการทางขวา</figcaption></figure>
+    <p>การ์ดแต่ละชนิดมีข้อมูลไม่เท่ากัน ข้างล่างคือการ์ดจริง 4 ใบ พร้อมป้ายตัวเลขบนภาพที่ตรงกับรายการคำอธิบายข้าง ๆ ชี้หรือแตะภาพเพื่อดูการ์ดเต็ม</p>
+    ${GUIDE_CARDS.map(cardx).join('')}
+    <p class="muted">Counter, Equipment และ Domain เป็น Spell เช่นกัน จัดวางข้อมูลคล้าย Enchant ต่างกันที่ชนิดย่อยบนป้ายและชื่อค่าใช้จ่าย (SpellCost, EquipCost, CastCost)</p>
   </section>
 
   <section class="gd" id="gd-kinds"><h2>4. ชนิดของการ์ด และไว้ทำอะไร</h2>
-    <p>ชี้ที่การ์ดตัวอย่างเพื่อดูการ์ดเต็ม ถ้าเห็นเป็นลายหลังการ์ดแปลว่ารูปยังโหลดจาก card-api ไม่ได้</p>
+    <p>ชี้ที่การ์ดตัวอย่างเพื่อดูการ์ดเต็ม ส่วนรายละเอียดว่าแต่ละส่วนบนการ์ดคืออะไร ดูที่หัวข้อ 3</p>
     <div class="gd-kinds">
-      <div class="gd-kind">${gcard('SD01-001')}<div><h3>Avatar <span class="gd-tag">1 ใบต่อเด็ค</span></h3><p>ตัวแทนของคุณ มี HP 10 ไม่ได้อยู่ในมือหรือเด็ค แต่อยู่ในช่อง Avatar ตลอดเกม ถ้า HP เหลือ 0 คุณแพ้ บางตัวมีความสามารถ ACTIVATE ให้คลิกใช้ได้ใน Main Phase</p></div></div>
-      <div class="gd-kind">${gcard('SD01-004')}<div><h3>Unit <span class="gd-tag">ลง Action Zone</span></h3><p>ตัวละครที่ลงสนามไปโจมตีและป้องกัน เป็นตัวหลักของเกม</p><ul><li>มีค่า Cost, ATK, DEF, CRI และเผ่า</li><li>Invite ด้วย Element ธาตุตรงกับ Unit จำนวนเท่า Cost</li><li>วางได้ 4 ช่องใน Action Zone ถ้าเต็มต้องลงเพิ่มไม่ได้</li><li>ลงแล้วอยู่ในสภาพตั้ง แต่เทิร์นที่ลงยังโจมตีไม่ได้</li></ul></div></div>
-      <div class="gd-kind">${gcard('SD01-013')}<div><h3>Enchant <span class="gd-tag">Spell · Magic Area</span></h3><p>เวทใช้ใน Main Phase จ่าย SpellCost แล้วเกิดผลตามข้อความ การ์ดที่ผลยังไม่จบจะค้างอยู่ใน Magic Area (3 ช่อง) ผลหมดแล้วลงกองทิ้ง ถ้า Magic Area เต็มจะร่าย Enchant เพิ่มไม่ได้</p></div></div>
+      <div class="gd-kind">${gthumb('card-avatar.jpg','SD02-001','Avatar')}<div><h3>Avatar <span class="gd-tag">1 ใบต่อเด็ค</span></h3><p>ตัวแทนของคุณ มี HP 10 ไม่ได้อยู่ในมือหรือเด็ค แต่อยู่ในช่อง Avatar ตลอดเกม ถ้า HP เหลือ 0 คุณแพ้ บางตัวมีความสามารถ ACTIVATE ให้คลิกใช้ได้ใน Main Phase</p></div></div>
+      <div class="gd-kind">${gthumb('card-unit.jpg','SD02-002','Unit')}<div><h3>Unit <span class="gd-tag">ลง Action Zone</span></h3><p>ตัวละครที่ลงสนามไปโจมตีและป้องกัน เป็นตัวหลักของเกม</p><ul><li>มีค่า Cost, ATK, DEF, CRI และเผ่า</li><li>Invite ด้วย Element ธาตุตรงกับ Unit จำนวนเท่า Cost</li><li>วางได้ 4 ช่องใน Action Zone ถ้าเต็มต้องลงเพิ่มไม่ได้</li><li>ลงแล้วอยู่ในสภาพตั้ง แต่เทิร์นที่ลงยังโจมตีไม่ได้</li></ul></div></div>
+      <div class="gd-kind">${gthumb('card-enchant.jpg','SD02-010','Enchant')}<div><h3>Enchant <span class="gd-tag">Spell · Magic Area</span></h3><p>เวทใช้ใน Main Phase จ่าย SpellCost แล้วเกิดผลตามข้อความ การ์ดที่ผลยังไม่จบจะค้างอยู่ใน Magic Area (3 ช่อง ในข้อความการ์ดเรียกว่า Spell Zone) ผลหมดแล้วลงกองทิ้ง ถ้า Magic Area เต็มจะร่าย Enchant เพิ่มไม่ได้</p></div></div>
       <div class="gd-kind">${gcard('SD02-013')}<div><h3>Counter <span class="gd-tag">Spell · ตอบโต้</span></h3><p>Spell ที่ใช้ตอบโต้ในเทิร์นฝ่ายตรงข้ามเท่านั้น เช่น เพิ่ม DEF ให้ Unit ที่ถูกโจมตี หรือยกเลิก Spell ของเขา ดูหัวข้อ 10 และ Keyword “Counter”</p></div></div>
       <div class="gd-kind">${gcard('SD01-017')}<div><h3>Equipment <span class="gd-tag">Spell · ติดกับ Unit</span></h3><p>อุปกรณ์ที่ติดกับ Unit บนสนาม ให้ ATK/DEF เพิ่มหรือความสามารถใหม่แก่ Unit ที่สวม โดยปกติ Unit 1 ใบสวมได้ 1 ใบ ถ้า Unit ใบนั้นถูกทำลาย Equipment ก็ออกจากสนามไปด้วย (เว้นแต่การ์ดเขียนต่าง) จ่าย EquipCost ตอนสวม</p></div></div>
       <div class="gd-kind">${gcard('SD02-018')}<div><h3>Domain <span class="gd-tag">Spell · Domain Zone</span></h3><p>สนามพิเศษที่มีผลต่อเนื่องให้ฝั่งเรา หรือกวนฝั่งตรงข้าม วางได้ฝั่งละ 3 ใบ และห้ามมี Domain ชื่อซ้ำกันบนสนามฝั่งเดียวกัน จ่าย CastCost ตอนวาง</p></div></div>
-      <div class="gd-kind">${gcard('SD01-019')}<div><h3>Ultimate <span class="gd-tag">ไม้ตาย · Ultimate Phase</span></h3><p>ไม้ตายที่ใช้ได้เฉพาะ Ultimate Phase ซึ่งอยู่หลัง Attack Phase จ่าย CastCost ซึ่งสูง ผลแรง เช่น กวาดล้างสนาม ใช้ได้เมื่อ Element พอและเงื่อนไขบนการ์ดครบ</p></div></div>
+      <div class="gd-kind">${gthumb('card-ultimate.jpg','SD02-019','Ultimate')}<div><h3>Ultimate <span class="gd-tag">ไม้ตาย · Ultimate Phase</span></h3><p>ไม้ตายที่ใช้ได้เฉพาะ Ultimate Phase ซึ่งอยู่หลัง Attack Phase จ่าย CastCost ซึ่งสูง ผลแรง เช่น กวาดล้างสนาม ใช้ได้เมื่อ Element พอและเงื่อนไขบนการ์ดครบ</p></div></div>
     </div>
     <p class="muted">Enchant, Counter, Equipment, Domain เรียกรวมว่า Spell ซึ่งมีค่า “Spell Cost” แทน Cost ของ Unit และไม่มี ATK/DEF/CRI</p>
   </section>
