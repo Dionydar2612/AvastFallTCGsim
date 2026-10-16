@@ -183,7 +183,7 @@ function place(G, c, zone, opts = {}) {
     case 'magic': { const i = P.magic.indexOf(null); P.magic[i] = c; c.zone = 'magic'; break; }
     case 'field': {
       const i = P.field.indexOf(null); P.field[i] = c; c.zone = 'field';
-      c.state = opts.state || 'stand'; c.enteredTurn = G.turn; c.mods = []; c.equips = []; c.flags = {};
+      c.state = opts.state || 'stand'; c.enteredTurn = G.turn; c.attackedTurn = -1; c.mods = []; c.equips = []; c.flags = {};
       break;
     }
     default: throw new Error('bad zone ' + zone);
@@ -675,8 +675,12 @@ AF.avatarAttackable = (G, p) => { const o = G.players[opp(p)]; const us = o.fiel
 AF.legalAttacks = function (G, p) {
   const P = G.players[p]; const O = G.players[opp(p)]; const out = [];
   if (AF.attackLocked(G)) return out;
+  const restOkAv = P.avatar && P.avatar.card && FXOF(P.avatar.card).restAttack;
+  const restAttackOk = !!restOkAv;
   for (const u of P.field) {
-    if (!u || u.state !== 'stand' || (u.enteredTurn === G.turn && !hasFlag(u, 'haste'))) continue;
+    if (!u || (u.enteredTurn === G.turn && !hasFlag(u, 'haste'))) continue;
+    /* Avatar ที่มี restAttack (เช่น BT01-001): Unit ที่นอนอยู่ประกาศโจมตีได้ แต่ได้ครั้งเดียวต่อเทิร์น (กันโจมตีวนซ้ำ) */
+    if (u.state !== 'stand' && !(restAttackOk && u.attackedTurn !== G.turn)) continue;
     if (hasFlag(u, 'noAttack')) continue;
     const targets = O.field.filter(Boolean).map(t => ({ unit: t }));
     const av = AF.avatarAttackable(G, p) || hasFlag(u, 'direct');   // flag 'direct' = โจมตี Avatar ได้โดยตรง
@@ -824,7 +828,7 @@ async function resolveAttack(G, item) {
   }
 }
 async function declareAttack(G, p, a, target) {
-  a.state = 'rest';
+  a.state = 'rest'; a.attackedTurn = G.turn;
   const tn = target === 'avatar' ? `Avatar ของ ${G.players[opp(p)].name}` : target.def.name;
   log(G, `${G.players[p].name} สั่ง ${a.def.name} โจมตี ${tn}`, p, { attack: a.uid, target: target === 'avatar' ? 'avatar' : target.uid });
   const item = { kind: 'attack', controller: p, source: a, attacker: a, target, label: 'การโจมตี', resolve: (it) => resolveAttack(G, it) };
