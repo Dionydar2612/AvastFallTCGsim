@@ -37,9 +37,12 @@ AF.loadData = function (data) {
       cost: raw ?? 0, noCost: !!(isSpell || c.type === 'Ultimate') && raw == null,
       atk: c.atk ?? 0, def: (c.def ?? c.defense ?? 0), cri: c.cri ?? 0,
       tribe: c.tribe || '', fx: c.fx || [], fl: c.fl || '',
-      el: c.element || (data.DECKS[c.deck] || {}).el || '', series: (data.DECKS[c.deck] || {}).name || '',
+      el: '', els: [], series: (data.DECKS[c.deck] || {}).name || '',
       rarity: c.rarity || '', artist: c.artist || '', image: c.image || ''
     };
+    /* ธาตุของการ์ด: elements[] (Avatar 2 สี) > element > ธาตุของเด็ค · ไม่มีเลย = ไม่ระบุธาตุ (จ่ายด้วยธาตุอะไรก็ได้ ใส่เด็คไหนก็ได้) */
+    const list = Array.isArray(c.elements) && c.elements.length ? c.elements : [c.element || (data.DECKS[c.deck] || {}).el].filter(Boolean);
+    AF.defs[id].els = [...new Set(list)]; AF.defs[id].el = AF.defs[id].els[0] || '';
     AF.defs[id].needsScript = AF.defs[id].fx.some(f => f[0] !== 'COST' && f[1]);
   }
   AF.refreshScriptFlags();
@@ -69,9 +72,20 @@ AF.autoDeck = function (series) {
   return { series, avatar, counts };
 };
 AF.deckSize = d => 1 + Object.values(d.counts).reduce((a, b) => a + b, 0);
+/* Element Deck เริ่มต้น 8 ใบ: Avatar 1 ธาตุ = ธาตุนั้นทั้งหมด · 2 ธาตุ = แบ่งครึ่ง (ธาตุแรกได้ส่วนเกิน) */
+AF.defaultEdeck = function (av) {
+  const els = (av && av.els && av.els.length) ? av.els : [''];
+  const o = {}; els.forEach((e, i) => { o[e] = Math.floor(8 / els.length) + (i < 8 % els.length ? 1 : 0); }); return o;
+};
 AF.edeckOf = function (d) {
   if (d.edeck && Object.keys(d.edeck).length) return d.edeck;
-  const av = AF.defs[d.avatar]; const o = {}; o[(av && av.el) || ''] = 8; return o;
+  return AF.defaultEdeck(AF.defs[d.avatar]);
+};
+/* กฎจัดเด็ค: Avatar กำหนดธาตุที่ใส่ได้ — การ์ดที่ธาตุทุกสีอยู่ในธาตุของ Avatar หรือการ์ดที่ไม่ระบุธาตุ */
+AF.allowedInDeck = function (av, card) {
+  if (!card || !card.els || !card.els.length) return true;
+  const ok = (av && av.els) || [];
+  return card.els.every(e => ok.includes(e));
 };
 AF.validateDeck = function (d) {
   const errs = [];
@@ -83,6 +97,8 @@ AF.validateDeck = function (d) {
     if (!df) { errs.push('ไม่พบการ์ด ' + id + ' ในข้อมูลปัจจุบัน'); continue; }
     if (df.kind === 'Avatar') errs.push(df.name + ' เป็น Avatar ใส่ใน Main Deck ไม่ได้');
     byName[df.name] = (byName[df.name] || 0) + c;
+    if (d.avatar !== undefined && AF.defs[d.avatar] && !AF.allowedInDeck(AF.defs[d.avatar], df))
+      errs.push(df.name + ' (ธาตุ' + df.els.join('/') + ') ใส่ไม่ได้ Avatar เป็นธาตุ' + (AF.defs[d.avatar].els.join('/') || 'ไม่ระบุ'));
   }
   for (const [nm, c] of Object.entries(byName)) if (c > 4) errs.push(nm + ' ใส่ได้ไม่เกิน 4 ใบ (ตอนนี้ ' + c + ')');
   if (d.avatar !== undefined) {
@@ -246,7 +262,7 @@ AF.addMod = (G, u, m) => {
 };
 
 /* ---------------------------------------------------------------- elements */
-const standElems = (P, el) => P.elems.filter(e => e.state === 'stand' && (!el || e.el === el));
+const standElems = (P, el) => P.elems.filter(e => e.state === 'stand' && (!el || (Array.isArray(el) ? el.includes(e.el) : e.el === el)));
 AF.standElems = standElems;
 function spendElems(G, p, n, el = null) {
   const P = G.players[p]; const pool = standElems(P, el);
@@ -601,7 +617,7 @@ function whyNot(G, p, card) {
   if (d.kind === 'Unit') {
     if (fx.cantSummonFromHand) return 'อัญเชิญจากมือไม่ได้ (ดูความสามารถ ANNOUNCE)';
     if (!AF.freeSlot(P)) return `Action Zone เต็ม (${P.fieldCap ?? 4} ช่อง)`;
-    if (standElems(P, d.el).length < d.cost) return `Element ธาตุ${d.el}ที่พร้อมใช้ไม่พอ (ต้องการ ${d.cost})`;
+    if (standElems(P, d.els).length < d.cost) return `Element ธาตุ${d.els.join('/')}ที่พร้อมใช้ไม่พอ (ต้องการ ${d.cost})`;
     return null;
   }
   if (d.kind === 'Counter') return 'ใช้ตอบโต้ได้เท่านั้น (ตอนคู่ต่อสู้ทำอะไรบางอย่าง)';
@@ -728,7 +744,7 @@ async function castDomain(G, p, card) {
 }
 async function summonFromHand(G, p, card) {
   const P = G.players[p];
-  spendElems(G, p, card.def.cost, card.def.el);
+  spendElems(G, p, card.def.cost, card.def.els);
   place(G, card, 'field', { state: 'stand' });
   log(G, `${P.name} อัญเชิญ ${card.def.name} (Invite ${card.def.cost})`, p, { enter: card.uid });
   await emit(G, 'unitEntered', { unit: card, via: 'summon', byEffect: false });
