@@ -7,6 +7,8 @@ AF.GameOver = GameOver;
 
 const opp = p => 1 - p;
 AF.opp = opp;
+/* จุดเสียบของสคริปต์การ์ด: hooks.turnEnd = ฟังก์ชัน async (G, p) ที่ทำงานหลังเหตุการณ์ turnEnd ก่อนโมดิฟายเออร์หมดอายุ */
+AF.hooks = AF.hooks || {}; AF.hooks.turnEnd = AF.hooks.turnEnd || [];
 
 /* กติกาคงที่ (ไม่มีตัวเลือกในหน้าตั้งค่า) */
 AF.DOMAIN_LIMIT = 3;   // Domain ต่อฝั่ง ฉบับ Revised
@@ -176,6 +178,7 @@ function place(G, c, zone, opts = {}) {
 AF.place = place;
 function attach(G, eq, unit) {
   G.players[eq.owner].equipTurn = G.turn;
+  if (eq.zone !== 'equip') eq.hops = 0;   // สวมใส่ใหม่จากโซนอื่น = เริ่มนับการย้ายผู้สวมใหม่ (SD05-017)
   detach(G, eq); eq.zone = 'equip'; eq.host = unit; unit.equips.push(eq);
 }
 AF.attach = attach;
@@ -194,7 +197,7 @@ function releaseLocks(G, u) {
   }
 }
 AF.standLocked = (G, u) => G.players.some(P => P.magic.some(m => m && m.linger && m.linger.locks && m.linger.locks.includes(u)));
-AF.setStand = (G, u) => { if (AF.standLocked(G, u)) { log(G, `${u.def.name} ไม่สามารถเปลี่ยนสภาพเป็น Stand ได้`, u.owner); return false; } u.state = 'stand'; return true; };
+AF.setStand = (G, u) => { if (hasFlag(u, 'noStand')) { log(G, `${u.def.name} ไม่สามารถเปลี่ยนสภาพเป็น Stand ได้`, u.owner); return false; } if (AF.standLocked(G, u)) { log(G, `${u.def.name} ไม่สามารถเปลี่ยนสภาพเป็น Stand ได้`, u.owner); return false; } u.state = 'stand'; return true; };
 AF.units = (G, p) => G.players[p].field.filter(Boolean);
 
 /* ---------------------------------------------------------------- stats & names */
@@ -326,6 +329,21 @@ H.immuneToEffect = (G, u) => {
   return false;
 };
 
+/* Equipment ที่ผู้สวมออกจากสนาม: ปกติลง dest ถ้าการ์ดมี equip.followHost (SD05-017) ให้เจ้าของเลือก Unit ใหม่สวมต่อ */
+AF.releaseEquips = async (G, host, equips, dest) => {
+  for (const e of equips) {
+    const f = FXOF(e).equip || {};
+    if (f.followHost && e.zone === 'equip') {
+      const cands = AF.equipTargets(G, e.owner, e).filter(u => u !== host);
+      if (cands.length) {
+        const u = await H.pickUnit(G, e.owner, cands, `${e.def.name}: เลือก Unit ที่จะสวมใส่ต่อ`);
+        if (u) { e.hops = (e.hops || 0) + 1; attach(G, e, u); log(G, `${u.def.name} สวมใส่ ${e.def.name} ต่อ (ย้ายครั้งที่ ${e.hops})`, e.owner, { equip: e.uid }); continue; }
+      }
+    }
+    place(G, e, dest);
+  }
+};
+
 /* ---------------------------------------------------------------- destruction */
 async function destroyUnit(G, u, by) {
   if (u.zone !== 'field') return false;
@@ -339,7 +357,7 @@ async function destroyUnit(G, u, by) {
   if (by.kind === 'battle' && !wasSilenced && fx.returnOnBattleDestroy) dest = 'hand';
   place(G, u, dest);
   const returnAll = equips.some(e => (FXOF(e).equip || {}).returnAllOnHostDestroyed);
-  for (const e of equips) { place(G, e, returnAll ? 'hand' : 'discard'); }
+  await AF.releaseEquips(G, u, equips, returnAll ? 'hand' : 'discard');
   log(G, `${u.def.name} ของ ${P.name} ถูกทำลาย${dest === 'hand' ? ' (กลับขึ้นมือ)' : ''}`, u.owner, { destroyed: u.uid });
   G.tf.destroyed[u.owner] = true;
   if (dest === 'discard' && !wasSilenced && fx.admonish) {
@@ -451,6 +469,8 @@ function spellCost(G, p, card, asCounter = false) {
   if (c <= 0) return 0;
   if (card.def.type === 'Spell' && P.spellDiscountUntil >= G.turn) c = Math.max(1, c - 1);
   if ((card.def.kind === 'Counter' || asCounter) && P.counterDiscount && P.counterDiscount.turn === G.turn && !P.counterDiscount.used) c = Math.max(1, c - 1);
+  const cm = FXOF(P.avatar.card).costMod;   // Avatar ลดค่าร่ายการ์ดบางใบ (SD05-001)
+  if (cm) c = Math.max(0, c - (cm(G, p, card) || 0));
   return c;
 }
 AF.spellCost = spellCost;
@@ -594,6 +614,7 @@ function whyNot(G, p, card) {
       if (P.domains.some(x => x.def.name === d.name)) return 'ห้ามมี Domain ชื่อซ้ำกัน';
       if (P.domains.length >= AF.DOMAIN_LIMIT) return `Domain Zone เต็ม (${AF.DOMAIN_LIMIT} ใบ)`;
     }
+    if (fx.castLife && P.avatar.hp <= fx.castLife) return `พลังชีวิตไม่พอจ่ายค่าร่าย (ต้องจ่าย ${fx.castLife} และ HP ต้องเหลืออย่างน้อย 1)`;
     if (fx.spell && fx.spell.can && !fx.spell.can({ G, p, self: card })) return fx.spell.cantReason || 'เงื่อนไขการร่ายยังไม่ครบ';
     return null;
   }
@@ -642,7 +663,7 @@ AF.legalAttacks = function (G, p) {
     if (!u || u.state !== 'stand' || (u.enteredTurn === G.turn && !hasFlag(u, 'haste'))) continue;
     if (hasFlag(u, 'noAttack')) continue;
     const targets = O.field.filter(Boolean).map(t => ({ unit: t }));
-    const av = AF.avatarAttackable(G, p);
+    const av = AF.avatarAttackable(G, p) || hasFlag(u, 'direct');   // flag 'direct' = โจมตี Avatar ได้โดยตรง
     const tn = AF.tauntUnits(G, p);
     out.push({ attacker: u, units: tn.length ? tn : O.field.filter(Boolean), avatar: av });
   }
@@ -654,6 +675,7 @@ async function payAndCast(G, p, card, kind) {
   const P = G.players[p]; const fx = FXOF(card);
   const cost = spellCost(G, p, card);
   spendElems(G, p, cost);
+  if (fx.castLife) { P.avatar.hp -= fx.castLife; log(G, `${P.name} จ่ายพลังชีวิต ${fx.castLife} หน่วย (HP ${P.avatar.hp})`, p); checkEnd(G); }   // ค่าร่ายเป็นพลังชีวิต
   if (P.counterDiscount && P.counterDiscount.turn === G.turn && !P.counterDiscount.used && kind === 'Counter') P.counterDiscount.used = true;
   const slot = kind === 'Enchant';
   if (slot) place(G, card, 'magic'); else place(G, card, 'limbo');
@@ -761,7 +783,7 @@ async function resolveAttack(G, item) {
   const a = item.attacker; const t = item.target; const p = a.owner;
   if (a.zone !== 'field') return;
   if (t === 'avatar') {
-    if (!AF.avatarAttackable(G, p)) { log(G, 'การโจมตี Avatar ไม่เป็นผล (ฝ่ายตรงข้ามมี Unit ที่ Stand อยู่)', p); return; }
+    if (!AF.avatarAttackable(G, p) && !hasFlag(a, 'direct')) { log(G, 'การโจมตี Avatar ไม่เป็นผล (ฝ่ายตรงข้ามมี Unit ที่ Stand อยู่)', p); return; }
     const dmg = stat(G, a, 'cri');
     log(G, `${a.def.name} โจมตี Avatar ของ ${G.players[opp(p)].name} (CRI ${dmg})`, p, { atkAvatar: a.uid });
     if (dmg > 0) dealAvatarDamage(G, opp(p), dmg, a);
@@ -881,6 +903,7 @@ async function takeTurn(G) {
   // End Phase
   G.phase = 'end';
   await emit(G, 'turnEnd', { player: p });
+  for (const h of AF.hooks.turnEnd) await h(G, p);
   for (const Q of G.players) {
     for (const u of Q.field) if (u) u.mods = u.mods.filter(m => !(m.expireAt != null && m.expireAt <= G.turn));
     for (let i = 0; i < Q.magic.length; i++) { const m = Q.magic[i]; if (m && m.linger && m.linger.expire <= G.turn) { place(G, m, 'discard'); log(G, `${m.def.name} สิ้นสุดผลและลงกองทิ้ง`, Q.idx); } }

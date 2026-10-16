@@ -48,11 +48,15 @@ function scoreAction(G, p, a, ctx) {
     if (id === 'SD04-010') s = oppUnits.length ? 6 : 0;
     if (id === 'SD04-011') s = oppUnits.length && ctx.myUnits ? 4 : 0;
     if (id === 'SD04-012') s = 1;
+    if (id === 'SD05-012') s = ctx.myUnits ? 5 : 0;
+    if (id === 'SD05-013') s = P.field.some(u => u && AF.hasName(G, u, 'ฮัสซัน')) ? 7 : -5;
+    if (id === 'SD05-014') s = O.avatar.hp <= 2 ? 10 : (P.avatar.hp <= 4 ? -3 : 2);
     if (ctx.reserve && afterCost(cost) < ctx.reserve) s -= 4;
     return s;
   }
   if (a.t === 'equip') {
     const cost = AF.spellCost(G, p, a.card); s = 8;
+    if (id === 'SD05-017' && P.avatar.hp <= 3) s = -3;
     if (ctx.reserve && afterCost(cost) < ctx.reserve) s -= 3;
     return s;
   }
@@ -62,6 +66,7 @@ function scoreAction(G, p, a, ctx) {
     if (id === 'SD02-019') return P.counterCount >= 2 && oppUnits.length ? 7 : -3;
     if (id === 'SD03-019') return 7;
     if (id === 'SD04-019') return 9;
+    if (id === 'SD05-019') return oppUnits.length ? 9 : -9;
     return 1;
   }
   if (a.t === 'ability') {
@@ -78,6 +83,13 @@ function scoreAction(G, p, a, ctx) {
     if (id === 'SD03-009') return ab.zone === 'hand' ? (P.field.some(u => u && u.def.id === 'SD03-009') ? -9 : 2) : (P.hand.length ? 3 : 0);
     if (id === 'SD03-018') return 8;
     if (id === 'SD04-001') return ab.id === 'haste' ? 3 : 7;
+    if (id === 'SD05-001') return oppUnits.some(u => u.state === 'rest') ? 7 : 0;
+    if (id === 'SD05-004') return 8;
+    if (id === 'SD05-005') return 5;
+    if (id === 'SD05-006') return 4;
+    if (id === 'SD05-015') return P.avatar.hp > 5 ? 4 : -2;
+    if (id === 'SD05-016') return 5;
+    if (id === 'SD05-018') return 2;
     return 4;
   }
   return 0;

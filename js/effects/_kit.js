@@ -10,7 +10,7 @@ const fxOf = c => FX[c.def.id] || {};
 H.removeUnit = (G, u, dest) => { // send a unit off the field WITHOUT destroying it (equipment -> discard)
   const eq = [...u.equips];
   place(G, u, dest);
-  for (const e of eq) place(G, e, 'discard');
+  return AF.releaseEquips(G, u, eq, 'discard');   // Equipment ปกติลงกองทิ้งทันที (ซิงก์) ยกเว้นที่ตามไปสวมต่อ (followHost) จะถามต่อแบบ async
 };
 const killAdvent = maxDef => ({
   targets: async ({ G, p, self }) => {
