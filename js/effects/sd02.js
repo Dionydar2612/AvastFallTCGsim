@@ -31,7 +31,7 @@ FX['SD02-005'] = { abilities: [
   { id: 'lib', kw: 'ACTIVATE 1/turn', zone: 'field', label: 'นอน แล้วจั่ว 1 ทิ้ง 1', can: ({ self }) => self.state === 'stand',
     pay: async ({ G, self }) => { self.state = 'rest'; },
     resolve: async ({ G, p }) => { H.draw(G, p, 1); await H.discardFromHand(G, p, 1); } },
-  prophecyAb('จั่วการ์ด 1 ใบ', async ({ G, p }) => { H.draw(G, p, 1); }, { id: 'proph' })] };
+  prophecyAb('ประกาศชื่อ ถ้าตรง จั่วการ์ด 2 ใบ', async ({ G, p }) => { H.draw(G, p, 2); }, { id: 'proph' })] };
 FX['SD02-006'] = {
   on: { attackDeclared: async ({ G, self, p, item, target }) => {
     if (target === 'avatar' || target === self || target.owner !== p || item.controller === p || self.zone !== 'field') return;
@@ -45,7 +45,7 @@ FX['SD02-007'] = { abilities: [prophecyAb('เลือก Unit ฝ่ายล�
   const mine = await H.pickUnit(G, p, H.myUnits(G, p), 'เลือก Unit ฝ่ายเรา 1 ใบ วางไว้บนสุดของ Main Deck เรา');
   const theirs = await H.pickUnit(G, p, H.oppUnits(G, p, null, self), 'เลือก Unit ฝ่ายตรงข้าม 1 ใบ วางไว้บนสุดของ Main Deck เขา');
   for (const u of [mine, theirs]) if (u && u.zone === 'field') { H.removeUnit(G, u, 'deckTop'); log(G, `${u.def.name} ถูกวางไว้บนสุดของ Main Deck`, u.owner); }
-}, { uses: 2 })] };
+})] };
 FX['SD02-008'] = { advent: { resolve: async ({ G, p }) => {
   const o = opp(p);
   const c = await H.choose(G, o, 'ฝ่ายตรงข้ามต้องเลือก 1 อย่าง', ['ให้ฝ่ายเราจั่วการ์ด 2 ใบ', 'ทิ้งการ์ดบนมือของคุณ 2 ใบ']);
@@ -103,25 +103,35 @@ FX['SD02-018'] = { on: { arrange: async ({ G, self, p, player }) => {
   if (fxOf(t).counter) { log(G, `${self.def.name}: เปิดเผย ${t.def.name} (Counter) — Counter ใบแรกในเทิร์นถัดไปลดค่าใช้จ่าย 1`, p, { reveal: [t.uid] }); G.players[p].counterDiscount = { turn: G.turn + 1, used: false }; }
   else log(G, `${self.def.name}: ดูการ์ดบนสุดอีกครั้ง (ไม่ใช่ Counter)`, p);
 } } };
-FX['SD02-019'] = {
-  counter: { when: (G, r, last) => last.controller !== r, resolve: async (c) => AF.FX['SD02-019']._eff(c) },
-  ultimate: { resolve: async (c) => AF.FX['SD02-019']._eff(c) },
-  _eff: async ({ G, p, self, item, target }) => {
-    if (item && item.isCounter && target && target.kind === 'ultimate') { H.cancel(G, target); log(G, `ยกเลิกผลของ ULTIMATE ${target.label}`, p); }
-    const n = G.players[p].counterCount;
-    const u = await H.pickUnit(G, p, H.oppUnits(G, p, null, self), 'เลือก Unit ฝ่ายตรงข้าม 1 ใบ');
-    if (!u) return;
-    if (n >= 2) { H.removeUnit(G, u, 'discard'); log(G, `${u.def.name} ถูกส่งลงกองทิ้ง (Counter สำเร็จ ${n} ครั้งในเทิร์นนี้)`, opp(p)); } else log(G, `Counter สำเร็จ ${n} ครั้ง — ยังไม่ถึง 2 ครั้ง`, p);
-    if (n >= 3) H.draw(G, p, 1);
+FX['SD02-019'] = { ultimate: { resolve: async ({ G, p, self }) => {
+  const P = G.players[p];
+  const n = Math.min(3, P.deck.length);
+  if (!n) { log(G, `${self.def.name}: Main Deck ว่าง ประกาศไม่ได้`, p); return; }
+  const pool = [...new Set(P.deck.map(c => c.def.name))];
+  const guesses = [];
+  for (let i = 0; i < n; i++) {
+    const r = await AF.ask(G, p, 'pick', { kind: 'names', title: `${self.def.name}: ประกาศชื่อการ์ดใบที่ ${i + 1} (จาก ${n} ใบบนสุดของ Main Deck)`, options: pool.map(x => ({ id: x, label: x })), min: 1, max: 1, ctx: { prophecy: true } });
+    guesses.push(r && r[0]);
   }
-};
+  const top = P.deck.slice(0, n);   // เปิดเผยแล้ววางกลับบนสุดตามลำดับเดิม = ไม่ต้องย้ายการ์ด
+  log(G, `${P.name} ประกาศ ${guesses.map(g => `"${g}"`).join(' → ')} — เปิดเผย: ${top.map(c => c.def.name).join(' → ')}`, p, { reveal: top.map(c => c.uid) });
+  const hit = top.map((c, i) => c.def.name === guesses[i]);
+  log(G, `ทายถูก ${hit.filter(Boolean).length}/${n} ใบ (ใบที่ ${hit.map((h, i) => h ? i + 1 : 0).filter(Boolean).join(', ') || '-'})`, p);
+  if (hit[0]) { log(G, 'ใบที่ 1 ถูก: จั่วการ์ด 1 ใบ', p); H.draw(G, p, 1); }
+  if (hit[1]) {
+    const u = await H.pickUnit(G, p, H.oppUnits(G, p, null, self), `${self.def.name}: เลือก Unit ฝ่ายตรงข้าม 1 ใบ ส่งลงกองทิ้ง`);
+    if (u && u.zone === 'field') { H.removeUnit(G, u, 'discard'); log(G, `ใบที่ 2 ถูก: ${u.def.name} ถูกส่งลงกองทิ้ง`, opp(p)); }
+    else log(G, 'ใบที่ 2 ถูก: ไม่มี Unit ฝ่ายตรงข้ามที่เลือกได้', p);
+  }
+  if (hit[2]) { log(G, 'ใบที่ 3 ถูก: สร้างความเสียหายใส่พลังชีวิตฝ่ายตรงข้าม 2 หน่วย', p); H.damageAvatar(G, opp(p), 2, self); }
+} } };
 
 /* ------------------------------------------------------------- คำอธิบายการตีความ (แสดงในหน้า "ข้อสังเกต" และตัวตรวจการ์ด) */
-NOTES["SD02-002"] = "PROPHECY ระบบใช้เป็นความสามารถที่สั่งเองได้ใน Main Phase เทิร์นละ 1 ครั้งต่อการ์ด (หนังสือกติกาไม่ได้ระบุจังหวะ)";
-NOTES["SD02-007"] = "\"ได้เพียง 2 ครั้ง\" ตีความเป็น 2 ครั้งต่อเทิร์น ต้องเลือก Unit ฝ่ายละ 1 ใบ ถ้ามี";
+NOTES["SD02-002"] = "ACTIVATE 1/turn: ประกาศชื่อการ์ด 1 ใบ แล้วเปิดเผยการ์ดบนสุดของ Main Deck ถ้าตรงจึงได้ผล (ใช้ได้ใน Main Phase เทิร์นละ 1 ครั้งต่อการ์ด) การ์ดที่เปิดเผยยังอยู่บนสุดของ Main Deck ตามเดิม";
+NOTES["SD02-007"] = "ACTIVATE 1/turn: ถ้าประกาศถูก ต้องเลือก Unit ฝ่ายละ 1 ใบ (ถ้ามี) แล้ววางไว้บนสุดของ Main Deck ของฝ่ายนั้น ๆ";
 NOTES["SD02-009"] = "DEF -3 ใส่เป้าหมายการโจมตี จนจบเทิร์น";
 NOTES["SD02-010"] = "ลดค่าใช้จ่าย SPELL ของฝ่ายเราเท่านั้น (ข้อความเขียนว่า \"ทุกใบ\")";
 NOTES["SD02-011"] = "ไม่มีค่าร่ายพิมพ์ไว้บนการ์ด ระบบจึงนับเป็น 0 Element";
-NOTES["SD02-019"] = "ใช้เป็น Counter ได้กับทุกอย่างที่ฝ่ายตรงข้ามทำ นับ Counter สำเร็จรวมใบนี้ด้วย ถ้าตอบโต้ Ultimate ของฝ่ายตรงข้าม จะยกเลิก Ultimate นั้นด้วย";
+NOTES["SD02-019"] = "ประกาศชื่อการ์ดครบทุกใบก่อน (ใบที่ 1 → 3) แล้วจึงเปิดเผยการ์ดบนสุด 3 ใบ ใบที่ชื่อตรงตามลำดับถือว่าทายถูก การ์ดที่เปิดอยู่บนสุดของ Main Deck ตามลำดับเดิม จึงไม่มีการย้ายการ์ด แล้วทำผลตามลำดับ: ใบที่ 1 จั่ว 1 → ใบที่ 2 ส่ง Unit ฝ่ายตรงข้าม 1 ใบลงกองทิ้ง (ไม่นับเป็นถูกทำลาย) → ใบที่ 3 ดาเมจ 2 ถ้า Main Deck เหลือน้อยกว่า 3 ใบ ประกาศและเปิดเท่าที่มี ใบที่เกินถือว่าทายไม่ถูก ไม่ใช่ Counter อีกต่อไป";
 
 })(globalThis.AF = globalThis.AF || {});

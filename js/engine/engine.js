@@ -779,8 +779,9 @@ async function useAbility(G, p, a) {
   const kind = kindByZone[a.zone] || 'unit-ability';
   const run = ab.prophecy ? { resolve: async (ctx) => { await declareProphecy(G, p, card, () => ab.resolve(ctx, null)); } } : ab;
   if (ab.prophecy) {
-    log(G, `${P.name} ใช้ PROPHECY ของ ${card.def.name}`, p);
-    const item = { kind, controller: p, source: card, label: 'PROPHECY ' + card.def.name, resolve: async (it) => { await declareProphecy(G, p, card, () => ab.resolve({ G, p, self: card, item: it }, null)); } };
+    const kwName = ab.kw ? ab.kw.split(' ')[0] : 'PROPHECY';
+    log(G, `${P.name} ใช้ ${kwName} ของ ${card.def.name} (ประกาศชื่อการ์ด)`, p);
+    const item = { kind, controller: p, source: card, label: kwName + ' ' + card.def.name, resolve: async (it) => { await declareProphecy(G, p, card, () => ab.resolve({ G, p, self: card, item: it }, null)); } };
     await runChain(G, item);
   } else {
     const ok = await runAbility(G, p, card, ab, kind, ab.kw ? ab.kw.split(' ')[0] : 'ความสามารถ');

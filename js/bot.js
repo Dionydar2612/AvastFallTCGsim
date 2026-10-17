@@ -63,7 +63,7 @@ function scoreAction(G, p, a, ctx) {
   if (a.t === 'domain') { const cost = AF.spellCost(G, p, a.card); s = 6; if (id === 'SD04-018') s = ctx.myUnits <= 1 && oppUnits.length >= 3 ? 8 : -3; if (ctx.reserve && afterCost(cost) < ctx.reserve) s -= 3; return s; }
   if (a.t === 'ultimate') {
     if (id === 'SD01-019') { const mine = P.field.filter(Boolean).length; const theirs = oppUnits.length; return theirs - mine >= 2 ? 9 : -9; }
-    if (id === 'SD02-019') return P.counterCount >= 2 && oppUnits.length ? 7 : -3;
+    if (id === 'SD02-019') return P.deck.length >= 3 ? 3 : -3;
     if (id === 'SD03-019') return 7;
     if (id === 'SD04-019') return 9;
     if (id === 'SD05-019') return oppUnits.length ? 9 : -9;
@@ -202,7 +202,6 @@ AF.makeBot = function (o = {}) {
         if (id === 'SD04-013') { if (item.kind === 'attack' && P.avatar.hp > 8) return c.uid; }
         if (id === 'SD04-014') { const a = item.attacker, t = item.target; if (AF.stat(G, a, 'atk') >= AF.stat(G, t, 'def')) return c.uid; }
         if (id === 'SD04-015') { const a = item.attacker, t = item.target; if (item.kind === 'attack' && t !== 'avatar' && AF.stat(G, a, 'atk') >= AF.stat(G, t, 'def') && P.deck.length > 8) return c.uid; }
-        if (id === 'SD02-019') { if (item.kind === 'ultimate') return c.uid; }
       }
       return null;
     },

@@ -29,7 +29,7 @@ const killSpell = maxDef => ({
 });
 const myHasName = (G, p, s) => G.players[p].field.some(u => u && hasName(G, u, s));
 const isKnight = c => tribeHas(c, 'อัศวินโต๊ะกลม');
-const prophecyAb = (label, resolve, extra = {}) => Object.assign({ id: 'proph', kw: 'PROPHECY', prophecy: true, label, zone: 'field', resolve }, extra);
+const prophecyAb = (label, resolve, extra = {}) => Object.assign({ id: 'proph', kw: 'ACTIVATE 1/turn', prophecy: true, label, zone: 'field', resolve }, extra);
 const enterByEffect = async (G, p, card, o = {}) => {
   const ok = await H.enterField(G, p, card, Object.assign({ byEffect: true, effectOwner: p }, o));
   if (!ok && card.zone !== 'field') place(G, card, card.zone === 'deck' ? 'deckBottom' : 'discard');
