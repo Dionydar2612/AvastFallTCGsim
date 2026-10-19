@@ -164,15 +164,17 @@ function detach(G, c) {
     case 'equip': { if (c.host) { c.host.equips.splice(c.host.equips.indexOf(c), 1); c.host = null; } break; }
     default: break;
   }
-  if (c.zone === 'field') { c.mods = []; c.equips = []; c.flags = {}; }
+  if (c.zone === 'field') { c.mods = []; c.equips = []; c.flags = {}; if (G.tf) { G.tf.left = G.tf.left || [0, 0]; G.tf.left[c.owner]++; } }   // นับ Unit ที่ออกจาก Action Zone ในเทิร์นนี้ (SD06-014)
   if (c.zone === 'magic') { c.linger = null; }
   c.zone = null;
   if (z0 === 'field') releaseLocks(G, c);
   if (z0 === 'domain') recalcCap(G);
 }
 function place(G, c, zone, opts = {}) {
+  const z0 = c.zone;
   detach(G, c);
   const P = G.players[c.owner];
+  if ((zone === 'deckTop' || zone === 'deckBottom') && z0 && z0 !== 'deck') AF.onDeckReturn(G, c, z0);   // การ์ดถูกส่งกลับ Main Deck (ไม่นับการเรียงใหม่ภายในเด็ค)
   switch (zone) {
     case 'deckTop': P.deck.unshift(c); c.zone = 'deck'; break;
     case 'deckBottom': P.deck.push(c); c.zone = 'deck'; break;
@@ -192,6 +194,14 @@ function place(G, c, zone, opts = {}) {
   return c;
 }
 AF.place = place;
+/* hook ซิงก์: การ์ดที่อยู่บนสนาม/สวมใส่ที่มี fx.deckReturn(G, self, card, fromZone) จะถูกเรียกเมื่อมีการ์ดใดถูกส่งกลับ Main Deck (SD06-004, SD06-017) */
+AF.onDeckReturn = (G, c, z0) => {
+  for (const P of G.players) for (const u of P.field) {
+    if (!u) continue;
+    if (!AF.silenced(G, u)) { const f = FXOF(u).deckReturn; if (f) f(G, u, c, z0); }
+    for (const e of u.equips) { const f = FXOF(e).deckReturn; if (f) f(G, e, c, z0); }
+  }
+};
 function attach(G, eq, unit) {
   G.players[eq.owner].equipTurn = G.turn;
   if (eq.zone !== 'equip') eq.hops = 0;   // สวมใส่ใหม่จากโซนอื่น = เริ่มนับการย้ายผู้สวมใหม่ (SD05-017)
@@ -217,7 +227,7 @@ AF.setStand = (G, u) => { if (hasFlag(u, 'noStand')) { log(G, `${u.def.name} ไ
 AF.units = (G, p) => G.players[p].field.filter(Boolean);
 
 /* ---------------------------------------------------------------- stats & names */
-const silenced = (G, u) => !!(u.mods && u.mods.some(m => m.silence));
+const silenced = (G, u) => !!(u.mods && u.mods.some(m => m.silence)) || (u.zone === 'field' && G.players.some(P => P.magic.some(m => m && m.linger && FXOF(m).silenceUnits)));   // silenceUnits: Unit ทุกใบใช้ความสามารถไม่ได้ (SD06-010)
 AF.silenced = silenced;
 const hasFlag = (u, f) => !!(u.mods && u.mods.some(m => m.flag === f));
 AF.hasFlag = hasFlag;
@@ -480,16 +490,30 @@ H.enterField = async (G, p, card, o = {}) => {
 };
 
 /* ---------------------------------------------------------------- spell costs */
-function spellCost(G, p, card, asCounter = false) {
+/* การ์ด Ultimate ที่วางใน Domain Zone แล้วมีการ์ดซ้อนใต้ (fx.bookCost, SD06-019): ใช้แทนการจ่าย 1 Element เมื่อร่าย Spell/เรียก Unit */
+AF.bookHolder = (G, p, card) => {
+  if (!card || !(card.def.type === 'Spell' || card.def.kind === 'Unit')) return null;
+  return G.players[p].domains.find(d => FXOF(d).bookCost && d.under && d.under.length) || null;
+};
+AF.useBook = (G, p) => {
+  const d = AF.bookHolder(G, p, { def: { type: 'Spell' } }); if (!d) return;
+  const b = d.under.shift(); place(G, b, 'discard');
+  log(G, `${d.def.name}: ส่ง ${b.def.name} ลงกองทิ้ง ใช้แทนการจ่าย 1 Element`, p);
+  const fxd = FXOF(d); if (!d.under.length && fxd.bookCost.onEmpty) fxd.bookCost.onEmpty({ G, p, self: d });
+};
+function spellCost(G, p, card, asCounter = false, out = null) {
   const P = G.players[p]; let c = card.def.cost;
   if (c <= 0) return 0;
+  const fi = FXOF(card).freeIf; if (fi && fi(G, p, card)) return 0;   // ร่ายฟรีเมื่อเข้าเงื่อนไข (SD06-014)
   if (card.def.type === 'Spell' && P.spellDiscountUntil >= G.turn) c = Math.max(1, c - 1);
   if ((card.def.kind === 'Counter' || asCounter) && P.counterDiscount && P.counterDiscount.turn === G.turn && !P.counterDiscount.used) c = Math.max(1, c - 1);
   const cm = FXOF(P.avatar.card).costMod;   // Avatar ลดค่าร่ายการ์ดบางใบ (SD05-001)
   if (cm) c = Math.max(0, c - (cm(G, p, card) || 0));
+  if (c >= 1 && card.def.kind !== 'Ultimate' && AF.bookHolder(G, p, card)) { c--; if (out) out.book = true; }
   return c;
 }
 AF.spellCost = spellCost;
+AF.unitCost = (G, p, card, out = null) => { let c = card.def.cost; if (c >= 1 && AF.bookHolder(G, p, card)) { c--; if (out) out.book = true; } return c; };
 
 /* ---------------------------------------------------------------- chain / stack */
 async function runChain(G, first) {
@@ -527,8 +551,9 @@ function counterOptions(G, r, last, chain) {
 }
 function buildCounter(G, r, card, last) {
   const P = G.players[r]; const fx = FXOF(card);
-  const cost = spellCost(G, r, card, true);
+  const bk = {}; const cost = spellCost(G, r, card, true, bk);
   spendElems(G, r, cost);
+  if (bk.book) AF.useBook(G, r);
   if (fx.counter.life) { P.avatar.hp -= fx.counter.life; log(G, `${P.name} จ่ายพลังชีวิต ${fx.counter.life} หน่วย (HP ${P.avatar.hp})`, r); checkEnd(G); }
   if (P.counterDiscount && P.counterDiscount.turn === G.turn && !P.counterDiscount.used && cost < card.def.cost) P.counterDiscount.used = true;
   if (card.def.kind === 'Counter') place(G, card, 'magic'); else place(G, card, 'limbo');
@@ -537,6 +562,7 @@ function buildCounter(G, r, card, last) {
     kind: card.def.kind === 'Ultimate' ? 'ultimate' : 'spell', controller: r, source: card, label: card.def.name, isCounter: true, target: last,
     resolve: async (self) => {
       P.counterCount++;
+      await emit(G, 'spellCast', { card, player: r });
       await fx.counter.resolve({ G, p: r, self: card, item: self, target: last });
       if (fx.prophecySpell) await runSpellProphecy(G, r, card, fx);
     },
@@ -618,7 +644,7 @@ function whyNot(G, p, card) {
   if (d.kind === 'Unit') {
     if (fx.cantSummonFromHand) return 'อัญเชิญจากมือไม่ได้ (ดูความสามารถ ANNOUNCE)';
     if (!AF.freeSlot(P)) return `Action Zone เต็ม (${P.fieldCap ?? 4} ช่อง)`;
-    if (standElems(P, d.els).length < d.cost) return `Element ธาตุ${d.els.join('/')}ที่พร้อมใช้ไม่พอ (ต้องการ ${d.cost})`;
+    if (standElems(P, d.els).length < AF.unitCost(G, p, card)) return `Element ธาตุ${d.els.join('/')}ที่พร้อมใช้ไม่พอ (ต้องการ ${AF.unitCost(G, p, card)})`;
     return null;
   }
   if (d.kind === 'Counter') return 'ใช้ตอบโต้ได้เท่านั้น (ตอนคู่ต่อสู้ทำอะไรบางอย่าง)';
@@ -675,7 +701,7 @@ AF.attackLocked = G => G.players.some(P => P.magic.some(m => m && m.linger && FX
 AF.avatarAttackable = (G, p) => { const o = G.players[opp(p)]; const us = o.field.filter(Boolean); if (AF.tauntUnits(G, p).length) return false; return us.length === 0 || us.every(u => u.state === 'rest'); };
 AF.legalAttacks = function (G, p) {
   const P = G.players[p]; const O = G.players[opp(p)]; const out = [];
-  if (AF.attackLocked(G)) return out;
+  if (AF.attackLocked(G) || P.noAttackTurn === G.turn) return out;   // noAttackTurn: Unit ฝ่ายนี้ประกาศโจมตีไม่ได้ทั้งเทิร์น (SD06-013)
   const restOkAv = P.avatar && P.avatar.card && FXOF(P.avatar.card).restAttack;
   const restAttackOk = !!restOkAv;
   for (const u of P.field) {
@@ -694,14 +720,16 @@ AF.legalAttacks = function (G, p) {
 /* ---------------------------------------------------------------- actions */
 async function payAndCast(G, p, card, kind) {
   const P = G.players[p]; const fx = FXOF(card);
-  const cost = spellCost(G, p, card);
+  const bk = {}; const cost = spellCost(G, p, card, false, bk);
   spendElems(G, p, cost);
+  if (bk.book) AF.useBook(G, p);
   if (fx.castLife) { P.avatar.hp -= fx.castLife; log(G, `${P.name} จ่ายพลังชีวิต ${fx.castLife} หน่วย (HP ${P.avatar.hp})`, p); checkEnd(G); }   // ค่าร่ายเป็นพลังชีวิต
   if (P.counterDiscount && P.counterDiscount.turn === G.turn && !P.counterDiscount.used && kind === 'Counter') P.counterDiscount.used = true;
   const slot = kind === 'Enchant';
   if (slot) place(G, card, 'magic'); else place(G, card, 'limbo');
   P.castNames = P.castNames || {}; P.castNames[card.def.name] = G.turn;
   log(G, `${P.name} ร่าย ${card.def.name}${cost ? ` (Spend ${cost} Element)` : ''}`, p, { cast: card.uid });
+  await emit(G, 'spellCast', { card, player: p });
   return cost;
 }
 
@@ -749,7 +777,8 @@ async function castDomain(G, p, card) {
 }
 async function summonFromHand(G, p, card) {
   const P = G.players[p];
-  spendElems(G, p, card.def.cost, card.def.els);
+  const bk = {}; spendElems(G, p, AF.unitCost(G, p, card, bk), card.def.els);
+  if (bk.book) AF.useBook(G, p);
   place(G, card, 'field', { state: 'stand' });
   log(G, `${P.name} อัญเชิญ ${card.def.name} (Invite ${card.def.cost})`, p, { enter: card.uid });
   await emit(G, 'unitEntered', { unit: card, via: 'summon', byEffect: false });
@@ -900,7 +929,7 @@ async function setup(G) {
 }
 async function takeTurn(G) {
   G.turn++; const p = G.active; const P = G.players[p];
-  G.tf = { destroyed: [false, false] };
+  G.tf = { destroyed: [false, false], left: [0, 0] };
   for (const Q of G.players) Q.counterCount = 0;
   log(G, `── เทิร์น ${G.turn}: ${P.name} ──`, p, { divider: true });
   // Start Phase
