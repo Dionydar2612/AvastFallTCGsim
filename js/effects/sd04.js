@@ -110,7 +110,7 @@ FX['SD04-018'] = { fieldLimit: 1, domainEnter: async ({ G, p, self }) => {
   } } };
 FX['SD04-019'] = { ultimate: {
   can: ({ G, p }) => !G.players[opp(p)].field.some(Boolean),
-  resolve: async ({ G, p }) => { if (G.players[opp(p)].field.some(Boolean)) { log(G, 'ฝ่ายตรงข้ามมี Unit บนสนาม ไม่เกิดผล', p); return; } H.damageAvatar(G, opp(p), 5); } } };
+  resolve: async ({ G, p }) => { if (G.players[opp(p)].field.some(Boolean)) { log(G, 'ฝ่ายตรงข้ามมี Unit บนสนาม ไม่เกิดผล', p); return; } H.damageAvatar(G, opp(p), 1); } } };
 
 /* ------------------------------------------------------------- คำอธิบายการตีความ (แสดงในหน้า "ข้อสังเกต" และตัวตรวจการ์ด) */
 NOTES["SD04-001"] = "AUTO ตีความเป็นความสามารถที่สั่งใช้เองใน Main Phase: จ่าย 2 Element เลือก Unit ที่ \"ไม่มีข้อความความสามารถ\" ให้โจมตีได้ในเทิร์นที่ลงสนาม (ทำได้หลายครั้งต่อเทิร์น ครั้งละ 1 Unit) ACTIVATE: การสวมใส่ด้วยความสามารถนี้ไม่ต้องจ่าย EquipCost นับเป็นการสวมใส่ Equipment ในเทิร์นนั้น ถ้าสวม ดาบกลาดิอุส จะไม่ถูกทำลายตอนจบเทิร์น (เพราะดาบกันการทำลายด้วยความสามารถ)";
