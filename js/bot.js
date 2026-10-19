@@ -83,6 +83,7 @@ function scoreAction(G, p, a, ctx) {
     if (id === 'SD03-009') return ab.zone === 'hand' ? (P.field.some(u => u && u.def.id === 'SD03-009') ? -9 : 2) : (P.hand.length ? 3 : 0);
     if (id === 'SD03-018') return 8;
     if (id === 'SD04-001') return ab.id === 'haste' ? 3 : 7;
+    if (id === 'SD06-001') return oppUnits.length ? 8 : 0;
     if (id === 'SD05-001') return oppUnits.some(u => u.state === 'rest') ? 7 : 0;
     if (id === 'SD05-004') return 8;
     if (id === 'SD05-005') return 5;
