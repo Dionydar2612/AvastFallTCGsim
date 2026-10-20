@@ -113,7 +113,12 @@ function handle(act,d,el,e){
       const i=ui.my.findIndex(x=>x.id===rec.id);if(i>=0)ui.my[i]=rec;else ui.my.push(rec);saveMy();
       if(e.forP!=null&&e.forP>=0){ui.cfg.sel[e.forP]='my:'+rec.id;saveCfg()}
       ui.ed=null;ui.modal=null;return render()}
-    case 'mode':ui.cfg.mode=d.v;return render();
+    case 'mode':if(d.v!=='online')olLeave(true);ui.err='';ui.cfg.mode=d.v;return render();
+    case 'olcreate':return olCreate();
+    case 'oljoin':return olJoin();
+    case 'olready':return olReady();
+    case 'olleave':olLeave(true);ui.err='';return render();
+    case 'olcopy':return olCopy(el);
     case 'first':ui.cfg.first=d.v;return render();
     case 'start':return startGame();
     case 'help':ui.modal={t:'help'};return render();
@@ -125,14 +130,14 @@ function handle(act,d,el,e){
     case 'closemenu':ui.menu=null;return render();
     case 'closeover':ui.over=ui.over;ui.hideOver=true;ui.overShown=false;ui.over=null;return render();
     case 'restart':return startGame();
-    case 'tosetup':ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;return render();
+    case 'tosetup':olLeave(true);ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;return render();
     case 'tab':ui.tab=d.v;return render();
     case 'settings':ui.settings=true;return render();
     case 'closesettings':ui.settings=false;return render();
     case 'setscale':applyScale(+d.v);return render();
     case 'surrender':{
       if(!confirm('ยอมแพ้และกลับไปหน้าแรก?'))return;
-      ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;ui.menu=null;ui.settings=false;
+      olLeave(true);ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;ui.menu=null;ui.settings=false;
       return render();
     }
     case 'dllog':{

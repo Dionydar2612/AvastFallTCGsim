@@ -119,6 +119,100 @@ a{color:var(--coral)}.muted{color:var(--ink2)}
 <div class="chips">${chips}</div>${cards}</div></body></html>`;
 }
 
+/* ---------------------------------------------------------------- ห้องออนไลน์ (เล่นกับเพื่อน)
+   เซิร์ฟเวอร์ไม่รู้กติกาเกม ทำหน้าที่แค่ส่งต่อ "ตัวเลือกที่ผู้เล่นกด" ระหว่างสองฝั่ง (SSE + POST)
+   ทั้งสองเบราว์เซอร์รัน engine เดียวกันด้วย seed เดียวกัน (lockstep) ห้องเก็บในหน่วยความจำ รีสตาร์ตแล้วหาย */
+const rooms = new Map();
+const CODE_CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const MAX_ROOMS = 300;
+function newCode() { for (let t = 0; t < 50; t++) { let c = ''; for (let i = 0; i < 5; i++) c += CODE_CH[crypto.randomInt(CODE_CH.length)]; if (!rooms.has(c)) return c; } return null; }
+const mkPlayer = () => ({ token: crypto.randomBytes(12).toString('hex'), out: [], seq: 0, res: null, lastN: 0, ready: null, online: false });
+function push(room, i, obj) {
+  const p = room.pl[i]; if (!p) return;
+  const id = ++p.seq, data = JSON.stringify(obj);
+  p.out.push({ id, data }); if (p.out.length > 4000) p.out.shift();
+  if (p.res) { try { p.res.write('id: ' + id + '\ndata: ' + data + '\n\n'); } catch (e) { } }
+}
+const roomOf = (code, pid, token) => {
+  const r = rooms.get(String(code || '').toUpperCase()); pid = +pid;
+  if (!r || (pid !== 0 && pid !== 1) || !r.pl[pid] || !same(token || '', r.pl[pid].token)) return null;
+  r.at = Date.now(); return r;
+};
+setInterval(() => {
+  const now = Date.now();
+  for (const [c, r] of rooms) {
+    for (const p of r.pl) if (p && p.res) { try { p.res.write(': ping\n\n'); } catch (e) { } }
+    const anyOn = r.pl.some(p => p && p.online);
+    if (now - r.at > 3 * 3600e3 || (!anyOn && now - r.at > 15 * 60e3)) { for (const p of r.pl) if (p && p.res) { try { p.res.end(); } catch (e) { } } rooms.delete(c); }
+  }
+}, 15000).unref();
+
+async function roomRoute(u, req, res) {
+  const path_ = u.pathname;
+  if (path_ === '/api/room/create' && req.method === 'POST') {
+    if (rooms.size >= MAX_ROOMS) return json(res, 503, { ok: false, error: 'ห้องเต็มชั่วคราว ลองใหม่ภายหลัง' });
+    const code = newCode(); if (!code) return json(res, 503, { ok: false, error: 'สร้างห้องไม่ได้' });
+    const room = { code, at: Date.now(), pl: [mkPlayer(), null], started: false };
+    rooms.set(code, room);
+    return json(res, 200, { ok: true, code, pid: 0, token: room.pl[0].token });
+  }
+  if (path_ === '/api/room/join' && req.method === 'POST') {
+    let d; try { d = JSON.parse(await body(req)); } catch (e) { return json(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+    const room = rooms.get(String(d.code || '').trim().toUpperCase());
+    if (!room) return json(res, 404, { ok: false, error: 'ไม่พบห้องนี้ (ตรวจรหัสอีกครั้ง)' });
+    if (room.pl[1]) return json(res, 409, { ok: false, error: 'ห้องนี้มีผู้เล่นครบสองคนแล้ว' });
+    room.pl[1] = mkPlayer(); room.at = Date.now();
+    return json(res, 200, { ok: true, code: room.code, pid: 1, token: room.pl[1].token });
+  }
+  if (path_ === '/api/room/events' && req.method === 'GET') {
+    const room = roomOf(u.searchParams.get('code'), u.searchParams.get('pid'), u.searchParams.get('token'));
+    if (!room) return send(res, 404, 'text/plain; charset=utf-8', 'ไม่พบห้อง');
+    const me = +u.searchParams.get('pid'), you = 1 - me, p = room.pl[me];
+    res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', 'connection': 'keep-alive', 'x-accel-buffering': 'no' });
+    res.write('retry: 2000\n\n');
+    const last = +(req.headers['last-event-id'] || u.searchParams.get('last') || 0) || 0;
+    for (const m of p.out) if (m.id > last) res.write('id: ' + m.id + '\ndata: ' + m.data + '\n\n');
+    if (p.res && p.res !== res) { try { p.res.end(); } catch (e) { } }
+    p.res = res; p.online = true;
+    push(room, you, { t: 'peer', online: true });
+    push(room, me, { t: 'peer', online: !!(room.pl[you] && room.pl[you].online) });
+    req.on('close', () => {
+      if (p.res !== res) return;
+      p.res = null; p.online = false; room.at = Date.now();
+      push(room, you, { t: 'peer', online: false });
+    });
+    return;
+  }
+  if (path_ === '/api/room/send' && req.method === 'POST') {
+    let d; try { d = JSON.parse(await body(req, 24576)); } catch (e) { return json(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+    const room = roomOf(d.code, d.pid, d.token);
+    if (!room) return json(res, 404, { ok: false, error: 'ไม่พบห้อง' });
+    const me = +d.pid, you = 1 - me, p = room.pl[me], m = d.msg || {};
+    if (m.t === 'ready') {
+      if (!room.pl[you]) return json(res, 409, { ok: false, error: 'ยังไม่มีเพื่อนเข้าห้อง' });
+      if (!m.deck || typeof m.deck !== 'object') return json(res, 400, { ok: false, error: 'ไม่มีเด็ค' });
+      p.ready = { deck: m.deck, hash: clip(m.hash, 40) };
+      const q = room.pl[you];
+      if (q.ready && !room.started) {
+        room.started = true;
+        const msg = { t: 'start', seed: crypto.randomInt(2 ** 31), first: crypto.randomInt(2), decks: [], hashes: [] };
+        for (const i of [0, 1]) { msg.decks[i] = room.pl[i].ready.deck; msg.hashes[i] = room.pl[i].ready.hash; }
+        push(room, 0, msg); push(room, 1, msg);
+      } else if (!room.started) push(room, you, { t: 'peerready' });
+    } else if (m.t === 'move') {
+      if (!room.started) return json(res, 409, { ok: false, error: 'เกมยังไม่เริ่ม' });
+      const n = +m.n || 0;
+      if (n <= p.lastN) return json(res, 200, { ok: true, dup: true });   // ส่งซ้ำ (ลองใหม่หลังเน็ตหลุด)
+      p.lastN = n;
+      push(room, you, { t: 'move', k: clip(m.k, 12), v: m.v });
+    } else if (m.t === 'leave') {
+      push(room, you, { t: 'leave' });
+    } else return json(res, 400, { ok: false, error: 'คำสั่งไม่ถูกต้อง' });
+    return json(res, 200, { ok: true });
+  }
+  return false;
+}
+
 /* ---------------------------------------------------------------- static */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 function serveStatic(u, res) {
@@ -170,6 +264,7 @@ http.createServer(async (req, res) => {
       const k = u.searchParams.get('key');
       return send(res, 303, 'text/plain', '', { location: '/recommece' + (k ? '?key=' + encodeURIComponent(k) : '') });
     }
+    if (u.pathname.startsWith('/api/room/')) { const r = await roomRoute(u, req, res); if (r !== false) return; return send(res, 404, 'text/plain', 'not found'); }
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(u, res);
     send(res, 405, 'text/plain', 'method not allowed');
   } catch (e) { console.error(e); try { send(res, 500, 'text/plain; charset=utf-8', 'เกิดข้อผิดพลาด'); } catch (_) { } }
