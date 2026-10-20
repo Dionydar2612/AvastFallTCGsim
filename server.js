@@ -191,12 +191,13 @@ async function roomRoute(u, req, res) {
     if (m.t === 'ready') {
       if (!room.pl[you]) return json(res, 409, { ok: false, error: 'ยังไม่มีเพื่อนเข้าห้อง' });
       if (!m.deck || typeof m.deck !== 'object') return json(res, 400, { ok: false, error: 'ไม่มีเด็ค' });
-      p.ready = { deck: m.deck, hash: clip(m.hash, 40) };
+      p.ready = { deck: m.deck, hash: clip(m.hash, 40), name: clip(m.name, 16) };
       const q = room.pl[you];
       if (q.ready && !room.started) {
         room.started = true;
-        const msg = { t: 'start', seed: crypto.randomInt(2 ** 31), first: crypto.randomInt(2), decks: [], hashes: [] };
-        for (const i of [0, 1]) { msg.decks[i] = room.pl[i].ready.deck; msg.hashes[i] = room.pl[i].ready.hash; }
+        const msg = { t: 'start', seed: crypto.randomInt(2 ** 31), first: crypto.randomInt(2), decks: [], hashes: [], names: [] };
+        for (const i of [0, 1]) { msg.decks[i] = room.pl[i].ready.deck; msg.hashes[i] = room.pl[i].ready.hash; msg.names[i] = room.pl[i].ready.name || ('ผู้เล่น ' + (i + 1)); }
+        if (msg.names[0] === msg.names[1]) msg.names[1] += ' (2)';
         push(room, 0, msg); push(room, 1, msg);
       } else if (!room.started) push(room, you, { t: 'peerready' });
     } else if (m.t === 'move') {

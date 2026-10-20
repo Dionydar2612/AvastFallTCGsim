@@ -7,6 +7,9 @@
 const OL={es:null,q:[],w:null,chain:Promise.resolve(),n:0,tok:0};
 ui.ol=null;ui.olcode='';
 
+const olName=()=>String(ui.pname||'').trim().slice(0,16);
+try{ui.pname=localStorage.getItem('af-pname')||''}catch(e){ui.pname=''}
+const nameInput=()=>`<div class="opt"><label for="olname">ชื่อที่แสดงตอนเล่น</label><input id="olname" value="${esc(ui.pname||'')}" maxlength="16" placeholder="ชื่อของคุณ (ไม่ใส่ก็ได้)" autocomplete="off" style="padding:6px 10px;border:2px solid var(--ink);border-radius:8px;font-size:15px;min-width:180px"></div>`;
 function olHash(){try{const s=JSON.stringify(Object.keys(AF.defs).sort().map(k=>[k,AF.defs[k]]));let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h>>>0)}catch(e){return ''}}
 async function olApi(path,body){
   let r,j;
@@ -21,7 +24,7 @@ function olSend(msg){
   if(msg.t==='move')msg.n=++OL.n;
   const job=async()=>{
     for(let i=0;i<40;i++){
-      if(ui.ol!==o)return;
+      if(ui.ol!==o&&msg.t!=='leave')return;   // ข้อความ leave ต้องส่งให้ได้แม้ปิดห้องฝั่งตัวเองแล้ว
       try{return await olApi('/api/room/send',{code:o.code,pid:o.pid,token:o.token,msg})}
       catch(e){if(/ไม่พบห้อง|ไม่ถูกต้อง|ยังไม่/.test(e.message))throw e;await new Promise(r=>setTimeout(r,1500))}
     }
@@ -43,9 +46,14 @@ function olOn(m){
   else if(m.t==='start')olStart(m);
   else if(m.t==='move'){if(OL.w&&OL.w.tok===OL.tok){const w=OL.w;OL.w=null;w.res(m)}else OL.q.push(m)}
   else if(m.t==='leave'){
-    o.left=true;
-    if(ui.screen==='game'&&ui.G&&!ui.over){ui.over={winner:o.pid,reason:'เพื่อนยอมแพ้/ออกจากห้อง'};ui.pending=null}
-    else if(ui.screen!=='game'){o.peer=false;o.ready=false;o.peerReady=false}
+    if(ui.screen==='game'&&ui.over)return;   // จบเกมแล้ว ปล่อยให้ดูกระดานต่อ
+    if(ui.screen==='game'){   // เพื่อนยอมแพ้/ออก → กลับหน้าแรกทันที
+      const nm=ui.G&&ui.G.players[1-o.pid]?ui.G.players[1-o.pid].name:'เพื่อน';
+      ui.token++;ui.screen='setup';ui.page='play';DATA.applyPending();fixSelections();ui.pending=null;ui.over=null;ui.modal=null;ui.menu=null;ui.settings=false;
+      olLeave(false);ui.err=nm+' ยอมแพ้/ออกจากเกม จึงกลับมาหน้าแรก';
+      return render();
+    }
+    o.peer=false;o.ready=false;o.peerReady=false;
   }
   scheduleRender();
 }
@@ -73,7 +81,7 @@ async function olReady(){
   const o=ui.ol;if(!o||o.ready)return;
   if(deckErrors(ui.cfg.sel[0]).length){ui.err='เด็คยังไม่ครบ 60 ใบ';return render()}
   ui.err='';o.ready=true;render();
-  try{await olSend({t:'ready',deck:deckOf(0),hash:olHash()})}
+  try{await olSend({t:'ready',deck:deckOf(0),hash:olHash(),name:olName()})}
   catch(e){o.ready=false;ui.err=e.message;render()}
 }
 /* ------------------------------------------------------------------ แปลงตัวเลือกเป็นข้อความที่ส่งข้ามเครื่อง */
@@ -103,7 +111,7 @@ function olStart(m){
     return {act:f('act'),attack:f('attack'),pick:f('pick'),order:f('order'),respond:f('respond'),mulligan:f('mulligan')};
   };
   const io=[0,1].map(p=>p===me?local(p):remote());
-  const names=[0,1].map(p=>p===me?'คุณ':'เพื่อน');
+  const names=[0,1].map(p=>(m.names&&m.names[p])||'ผู้เล่น '+(p+1));
   const G=AF.createGame({decks:m.decks,io,names,first:m.first,seed:m.seed,refresh:scheduleRender});
   Object.assign(ui,{G,screen:'game',pending:null,viewer:me,inspect:null,sel:null,menu:null,modal:null,cover:null,seen:0,over:null,tab:'card',peek:false,toast:'',err:''});
   render();
@@ -116,6 +124,7 @@ function onlineHTML(pb){
   if(!o){
     return `<div class="setup" style="margin-top:16px">${pb(0)}<section class="pbox"><h2>ห้องส่วนตัว</h2>
       <p class="muted">เล่นกับเพื่อนผ่านอินเทอร์เน็ต เลือกเด็คของคุณทางซ้ายก่อน แล้วสร้างห้องส่งรหัสให้เพื่อน หรือกรอกรหัสที่เพื่อนให้มา</p>
+      ${nameInput()}
       <div class="opt"><button class="btn pri" data-act="olcreate" ${ui.olbusy?'disabled':''}>สร้างห้อง</button></div>
       <div class="opt"><input id="olcode" value="${esc(ui.olcode||'')}" maxlength="5" placeholder="รหัสห้อง 5 ตัว" autocomplete="off" style="text-transform:uppercase;width:150px;padding:6px 10px;border:2px solid var(--ink);border-radius:8px;font:600 16px monospace;letter-spacing:2px"><button class="btn" data-act="oljoin" ${ui.olbusy?'disabled':''}>เข้าห้อง</button></div>
       ${err}</section></div>`;
@@ -125,12 +134,13 @@ function onlineHTML(pb){
   const bad=deckErrors(ui.cfg.sel[0]).length;
   return `<div class="setup" style="margin-top:16px">${pb(0)}<section class="pbox"><h2>ห้อง <span style="font:700 26px monospace;letter-spacing:4px">${esc(o.code)}</span></h2>
     <p>${esc(st)}</p>
-    <p class="muted">${o.conn===false?'⚠ กำลังเชื่อมต่อเซิร์ฟเวอร์ใหม่… · ':''}คุณคือ ${o.pid===0?'เจ้าของห้อง':'ผู้เข้าร่วม'} · ใครเล่นก่อนสุ่มให้</p>
+    <p class="muted">${o.conn===false?'⚠ กำลังเชื่อมต่อเซิร์ฟเวอร์ใหม่… · ':''}คุณคือ ${o.pid===0?'เจ้าของห้อง':'ผู้เข้าร่วม'} · ใครเล่นก่อนสุ่มให้ · ชื่อที่ว่างจะแสดงเป็น ผู้เล่น 1/2</p>
+    ${o.ready?'':nameInput()}
     <div class="opt"><input id="ollink" readonly value="${esc(link)}" style="flex:1;min-width:200px;padding:6px 10px;border:2px solid var(--ink);border-radius:8px;font-size:13px" onclick="this.select()"><button class="btn sm" data-act="olcopy">คัดลอกลิงก์</button></div>
     <div class="opt"><button class="btn pri" data-act="olready" ${(!o.peer||o.ready||bad)?'disabled':''}>พร้อม</button><button class="btn" data-act="olleave">ออกจากห้อง</button></div>
     ${err}</section></div>`;
 }
-root.addEventListener('input',e=>{if(e.target.id==='olcode')ui.olcode=e.target.value.toUpperCase()});
+root.addEventListener('input',e=>{if(e.target.id==='olcode')ui.olcode=e.target.value.toUpperCase();if(e.target.id==='olname'){ui.pname=e.target.value;try{localStorage.setItem('af-pname',ui.pname)}catch(err){}}});
 function olCopy(el){
   const t=(document.getElementById('ollink')||{}).value||'';let ok=false;
   try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(()=>{});ok=true}}catch(e){}
